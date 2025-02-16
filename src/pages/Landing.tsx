@@ -11,13 +11,13 @@ const Landing = () => {
             <div className="text-2xl font-bold text-indigo-600">PrepTrack</div>
             <div className="flex gap-4">
               <Link
-                to="/login"
+                to="/Dashboard"
                 className="px-4 py-2 text-indigo-600 hover:text-indigo-500 font-semibold"
               >
                 Login
               </Link>
               <Link
-                to="/register"
+                to="/Dashboard"
                 className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 font-semibold"
               >
                 Register
