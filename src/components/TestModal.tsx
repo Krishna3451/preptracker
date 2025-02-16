@@ -103,6 +103,10 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
     }
   };
 
+  const hasChapterFromSubject = (subject: string) => {
+    return selectedChapters.some(chapterId => chapterId.startsWith(subject[0].toLowerCase()));
+  };
+
   const canProceed = () => {
     switch (step) {
       case 1:
@@ -112,12 +116,25 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
       case 3:
         return true;
       case 4:
-        return selectedChapters.length > 0;
+        // Check if at least one chapter is selected from each selected subject
+        return selectedSubjects.every(subject => hasChapterFromSubject(subject));
       case 5:
         return testName.length > 0;
       default:
         return false;
     }
+  };
+
+  const getChapterSelectionStatus = () => {
+    const status = selectedSubjects.map(subject => ({
+      subject,
+      hasChapter: hasChapterFromSubject(subject)
+    }));
+    
+    const incomplete = status.filter(s => !s.hasChapter).map(s => s.subject);
+    if (incomplete.length === 0) return '';
+    
+    return `Please select at least one chapter from: ${incomplete.join(', ')}`;
   };
 
   if (!isOpen) return null;
@@ -216,11 +233,16 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
                 </div>
               </div>
             </div>
-            <p className="text-gray-400 text-sm">Select at least 1 chapter from each subject</p>
+            <div className="space-y-1">
+              <p className="text-gray-400 text-sm">Select at least 1 chapter from each subject</p>
+              {getChapterSelectionStatus() && (
+                <p className="text-red-400 text-sm">{getChapterSelectionStatus()}</p>
+              )}
+            </div>
             
-            <div className="space-y-4">
+            <div className="space-y-4 flex-grow overflow-auto custom-scrollbar">
               {selectedSubjects.map((subject) => (
-                <div key={subject} className="p-4 bg-gray-800/50 rounded-xl">
+                <div key={subject} className="p-4 bg-gray-800/50 rounded-xl mb-4 last:mb-0">
                   <button 
                     onClick={() => toggleSubjectExpansion(subject)}
                     className="w-full"
@@ -240,8 +262,11 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
                         </div>
                         <div className="text-left">
                           <h3 className="font-medium text-white">{subject}</h3>
-                          <p className="text-sm text-gray-400">
+                          <p className={`text-sm ${
+                            hasChapterFromSubject(subject) ? 'text-gray-400' : 'text-red-400'
+                          }`}>
                             {selectedChapters.filter(id => id.startsWith(subject[0].toLowerCase())).length} Chapters Selected
+                            {!hasChapterFromSubject(subject) && ' (Required)'}
                           </p>
                         </div>
                       </div>
@@ -254,20 +279,22 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
                   </button>
                   
                   {expandedSubjects.includes(subject) && (
-                    <div className="grid grid-cols-1 gap-2 mt-3">
-                      {chapters[subject].map((chapter) => (
-                        <button
-                          key={chapter.id}
-                          onClick={() => handleChapterToggle(chapter.id)}
-                          className={`p-3 rounded-lg text-left transition-all ${
-                            selectedChapters.includes(chapter.id)
-                              ? 'bg-gray-700 text-white'
-                              : 'text-gray-300 hover:bg-gray-700/50'
-                          }`}
-                        >
-                          <span className="line-clamp-1">{chapter.name}</span>
-                        </button>
-                      ))}
+                    <div className="mt-3 max-h-[200px] overflow-y-auto custom-scrollbar">
+                      <div className="grid grid-cols-1 gap-2">
+                        {chapters[subject].map((chapter) => (
+                          <button
+                            key={chapter.id}
+                            onClick={() => handleChapterToggle(chapter.id)}
+                            className={`p-3 rounded-lg text-left transition-all w-full hover:shadow-lg ${
+                              selectedChapters.includes(chapter.id)
+                                ? 'bg-gray-700 text-white shadow-md'
+                                : 'text-gray-300 hover:bg-gray-700/50'
+                            }`}
+                          >
+                            <span className="line-clamp-2 text-sm">{chapter.name}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -345,7 +372,7 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
           </div>
 
           {/* Content */}
-          <div className="p-6 flex-grow">
+          <div className="p-6 flex-grow overflow-hidden flex flex-col">
             {renderStep()}
           </div>
 
