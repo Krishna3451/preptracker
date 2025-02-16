@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Toggle Switch Styles */
+.switch-checkbox {
+  right: 0;
+  z-index: 1;
+  transition: all 0.3s;
+}
+
+.switch-checkbox:checked {
+  right: auto;
+  left: 0;
+}
+
+.switch-label {
+  transition: background-color 0.3s;
+}
+
+.switch-checkbox:checked + .switch-label {
+  background-color: #4f46e5; /* Indigo 600 */
+}
+
+.switch-checkbox:focus {
+  outline: none;
+}
+
+.switch-checkbox:checked:focus + .switch-label {
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
