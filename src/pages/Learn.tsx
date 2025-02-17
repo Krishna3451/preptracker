@@ -22,34 +22,100 @@ interface SubjectData {
 
 const defaultChapters: { [key: string]: string[] } = {
   'Physics': [
-    'Kinematics',
+    'Basic Mathematics',
+    'Vector',
+    'Units and Measurements',
+    'Motion in a Straight Line',
+    'Motion in a Plane',
     'Laws of Motion',
     'Work, Energy and Power',
-    'Rotational Motion',
+    'System of Particles & Rotation Motion',
     'Gravitation',
-    'Properties of Solids and Liquids',
+    'Mechanical Properties of Solid',
+    'Mechanical Properties of Fluids',
+    'Thermal Properties of Matter',
     'Thermodynamics',
-    'Oscillations and Waves'
+    'Kinetic Theory of Gases',
+    'Oscillations',
+    'Waves',
+    'Electric Charges & Fields',
+    'Electrostatic Potential & Capacitance',
+    'Current Electricity',
+    'Moving Charges & Magnetism',
+    'Magnetism & Matter',
+    'EMI',
+    'Alternating Current',
+    'Electromagnetic Waves',
+    'Ray optics',
+    'Wave Optics',
+    'Dual Nature of Radiation and Matter',
+    'Atoms',
+    'Nuclei',
+    'Semiconductor Electronics'
+
   ],
+
   'Chemistry': [
-    'Atomic Structure',
+    'Some Basic Concept of Chemistry',
+    'Structure of Atom',
+    'Classification of Elements & Periodicity',
     'Chemical Bonding',
-    'States of Matter',
     'Thermodynamics',
     'Equilibrium',
     'Redox Reactions',
-    'Organic Chemistry',
-    'Periodic Table'
+    'p-Block Elements (Group 13 & 14)',
+    'Organic Chemistry: Some Basic Principles & Techniques',
+    'Hydrocarbons ',
+    'Solutions',
+    'Electrochemistry',
+    'Chemical Kinetics',
+    'p-Block Elements (Group 15 to 18)',
+    'd & f-Block Elements',
+    'Coordination Compounds',
+    'Haloalkanes & Haloarenes',
+    'Alcohol, Phenol and Ether',
+    'Aldehyde, Ketone and Carboxylic Acid',
+    'Amines',
+    'Biomolecules',
+    'Practical Chemistry'
   ],
+
   'Biology': [
-    'Cell : The Unit Of Life',
+    'Living World',
     'Biological Classification',
     'Plant Kingdom',
     'Animal Kingdom',
     'Morphology of Flowering Plants',
-    'Human Physiology',
-    'Genetics and Evolution',
-    'Biotechnology'
+    'New Families',
+    'Anatomy of Flowering Plants',
+    'Structural Organisation in Animals',
+    'Cell-The Unit of Life',
+    'Biomolecules',
+    'Cell Cycle and Cell Division',
+    'Photosynthesis in Higher Plants',
+    'Respiration in Plants',
+    'Plant Growth and Development',
+    'Breathing and Exchnage of Gases',
+    'Body Fluids and Circulation',
+    'Excretory Products & their elimination',
+    'Locomotion and movements',
+    'Neural Control and Coordination',
+    'Chemical Coordination and Integration',
+    'Sexual Reproduction in Flowering Plants',
+    'Human Reproduction',
+    'Reproductive Health',
+    'Principles of Inheritance and Variation',
+    'Molecular Basis of Inheritance',
+    'Evolution',
+    'Human Health & Diseases',
+    'Dengue & Chickungunya',
+    'Microbes in human Welfare',
+    'Biotechnology-Principles and Processes',
+    'Biotechnology and Its Application',
+    'Organism and Populations',
+    'Ecosystem',
+    'Biodiversity and Conservation'
+    
   ]
 };
 
@@ -163,31 +229,18 @@ const Learn = () => {
           <h2 className="font-semibold text-gray-700 mb-4">Chapters</h2>
           <div className="space-y-1">
             {subjectData[selectedSubject] && (
-              <>
-                <button
-                  onClick={() => setSelectedChapter(null)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
-                    !selectedChapter
-                      ? 'bg-indigo-50 text-indigo-700 font-medium'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  All Chapters
-                </button>
-                {subjectData[selectedSubject].chapters.map((chapter) => (
-              <button
-                key={chapter}
-                onClick={() => setSelectedChapter(chapter)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
-                  selectedChapter === chapter
-                    ? 'bg-indigo-50 text-indigo-700 font-medium'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
+              <select
+                value={selectedChapter || ''}
+                onChange={(e) => setSelectedChapter(e.target.value || null)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
-                {chapter}
-              </button>
-            ))}
-              </>
+                <option value="">All Chapters</option>
+                {subjectData[selectedSubject].chapters.map((chapter) => (
+                  <option key={chapter} value={chapter}>
+                    {chapter}
+                  </option>
+                ))}
+              </select>
             )}
           </div>
         </div>
