@@ -7,6 +7,7 @@ import TestYourself from './pages/TestYourself';
 import Rank from './pages/Rank';
 import Reports from './pages/Reports';
 import Landing from './pages/Landing';
+import Admin from './pages/Admin';
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -37,6 +38,7 @@ function App() {
           <Route path="/test" element={<TestYourself />} />
           <Route path="/rank" element={<Rank />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </AppLayout>
     </Router>

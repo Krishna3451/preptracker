@@ -66,7 +66,7 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
   };
 
   const handleNext = () => {
-    if (step < 5) {
+    if (step < 6) {
       if (step === 2) {
         // When moving from question selection to time, set initial time
         setTimeInMinutes(questionCount);
@@ -120,6 +120,8 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
         return selectedSubjects.every(subject => hasChapterFromSubject(subject));
       case 5:
         return testName.length > 0;
+      case 6:
+        return true;
       default:
         return false;
     }
@@ -328,6 +330,45 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
             </div>
           </div>
         );
+      case 6:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-white">Preview your test</h2>
+            <div className="space-y-4 bg-gray-800/50 rounded-xl p-4">
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium text-white">{testName}</h3>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-400">{timeInMinutes} minutes</span>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <h4 className="text-sm font-medium text-gray-300">Questions</h4>
+                <p className="text-gray-400">{questionCount} questions total</p>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-gray-300">Selected Chapters</h4>
+                {selectedSubjects.map((subject) => (
+                  <div key={subject} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${subject === 'Physics' ? 'bg-orange-500' : subject === 'Chemistry' ? 'bg-green-500' : 'bg-blue-500'}`} />
+                      <span className="text-gray-300">{subject}</span>
+                    </div>
+                    <div className="pl-4 space-y-1">
+                      {chapters[subject]
+                        .filter((chapter) => selectedChapters.includes(chapter.id))
+                        .map((chapter) => (
+                          <p key={chapter.id} className="text-sm text-gray-400">{chapter.name}</p>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
     }
   };
 
@@ -356,7 +397,7 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
           <div className="absolute top-0 left-0 right-0 h-1 bg-gray-800">
             <div 
               className="h-full bg-indigo-600 transition-all duration-300"
-              style={{ width: `${(step / 5) * 100}%` }}
+              style={{ width: `${(step / 6) * 100}%` }}
             />
           </div>
 
@@ -406,7 +447,7 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
                   </button>
                 )}
                 <button
-                  onClick={step === 5 ? () => {
+                  onClick={step === 6 ? () => {
                     onSubmit({ testName, selectedSubjects, questionCount, timeInMinutes, selectedChapters });
                     resetState();
                   } : handleNext}
@@ -417,7 +458,7 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
                       : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  {step === 5 ? 'Create Test' : 'Next'}
+                  {step === 6 ? 'Create Test' : 'Next'}
                 </button>
               </div>
             </div>

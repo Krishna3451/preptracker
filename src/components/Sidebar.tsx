@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, PenTool, Trophy, BarChart2, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, BookOpen, PenTool, Trophy, BarChart2, GraduationCap, Settings } from 'lucide-react';
 
 const Sidebar = () => {
   const navItems = [
