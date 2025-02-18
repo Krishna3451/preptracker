@@ -1,7 +1,15 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, BookOpen, Target, Trophy } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Landing = () => {
+  const { signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
+
+  const handleGetStarted = async () => {
+    await signInWithGoogle();
+    navigate('/dashboard');
+  };
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Navigation Bar */}
@@ -9,20 +17,7 @@ const Landing = () => {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div className="text-2xl font-bold text-indigo-600">PrepTrack</div>
-            <div className="flex gap-4">
-              <Link
-                to="/Dashboard"
-                className="px-4 py-2 text-indigo-600 hover:text-indigo-500 font-semibold"
-              >
-                Login
-              </Link>
-              <Link
-                to="/Dashboard"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 font-semibold"
-              >
-                Register
-              </Link>
-            </div>
+            <div></div>
           </div>
         </div>
       </nav>
@@ -38,19 +33,13 @@ const Landing = () => {
               Track your progress, analyze your performance, and achieve your goals with PrepTrack's intelligent learning platform.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link
-                to="/dashboard"
-                className="rounded-md bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              <button
+                onClick={handleGetStarted}
+                className="rounded-md bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 flex items-center"
               >
-                Get Started
+                Sign in with Google
                 <ArrowRight className="ml-2 inline-block h-5 w-5" />
-              </Link>
-              <Link
-                to="/learn"
-                className="text-lg font-semibold leading-6 text-gray-900 hover:text-indigo-600"
-              >
-                Learn more <span aria-hidden="true">→</span>
-              </Link>
+              </button>
             </div>
           </div>
         </div>

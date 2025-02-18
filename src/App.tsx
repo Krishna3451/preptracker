@@ -8,6 +8,7 @@ import Rank from './pages/Rank';
 import Reports from './pages/Reports';
 import Landing from './pages/Landing';
 import Admin from './pages/Admin';
+import { AuthProvider } from './contexts/AuthContext';
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -30,8 +31,9 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <Router>
-      <AppLayout>
-        <Routes>
+      <AuthProvider>
+        <AppLayout>
+          <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/learn" element={<Learn />} />
@@ -39,8 +41,9 @@ function App() {
           <Route path="/rank" element={<Rank />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/admin" element={<Admin />} />
-        </Routes>
-      </AppLayout>
+          </Routes>
+        </AppLayout>
+      </AuthProvider>
     </Router>
   );
 }

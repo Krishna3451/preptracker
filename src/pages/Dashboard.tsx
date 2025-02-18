@@ -1,9 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TaskCalendar, { Task } from '../components/TaskCalendar';
 import ExamCountdown from '../components/ExamCountdown';
 import { format } from 'date-fns';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 
 const Dashboard = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [tasks, setTasks] = useState<Task[]>(() => {
     const savedTasks = localStorage.getItem('preptrack_tasks');
@@ -21,7 +37,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-start gap-8">
         <div className="space-y-6 flex-1">
-          <h1 className="text-2xl font-bold text-gray-800">Hello Dr!</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Hello Dr {user?.displayName?.split(' ')[0]}!</h1>
           <ExamCountdown />
         </div>
         <div className="bg-white p-4 rounded-xl shadow-sm overflow-hidden w-[350px] shrink-0">
@@ -52,6 +68,14 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+      {/* Logout Button */}
+      <button
+        onClick={handleLogout}
+        className="fixed bottom-8 left-8 flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-500 transition-colors"
+      >
+        <LogOut className="h-5 w-5" />
+        Logout
+      </button>
     </div>
   );
 };
