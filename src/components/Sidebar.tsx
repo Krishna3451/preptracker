@@ -11,8 +11,9 @@ const Sidebar = () => {
     { path: '/reports', icon: BarChart2, label: 'Reports' },
   ];
 
+  
   return (
-    <div className="w-64 bg-white border-r border-gray-200 px-4 py-6">
+    <div className="w-64 h-screen sticky top-0 bg-white border-r border-gray-200 px-4 py-6 overflow-y-auto">
       <div className="flex items-center gap-2 mb-8 px-2">
         <GraduationCap className="w-8 h-8 text-indigo-600" />
         <span className="text-xl font-bold text-gray-800">PrepTrack</span>
