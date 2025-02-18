@@ -9,6 +9,7 @@ import Reports from './pages/Reports';
 import Landing from './pages/Landing';
 import Admin from './pages/Admin';
 import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -34,13 +35,13 @@ function App() {
       <AuthProvider>
         <AppLayout>
           <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/learn" element={<Learn />} />
-          <Route path="/test" element={<TestYourself />} />
-          <Route path="/rank" element={<Rank />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/admin" element={<Admin />} />
+            <Route path="/" element={<Landing />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
+            <Route path="/test" element={<ProtectedRoute><TestYourself /></ProtectedRoute>} />
+            <Route path="/rank" element={<ProtectedRoute><Rank /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
           </Routes>
         </AppLayout>
       </AuthProvider>
