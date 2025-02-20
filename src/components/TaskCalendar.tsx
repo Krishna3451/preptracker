@@ -5,6 +5,8 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { EventClickArg } from '@fullcalendar/core';
 import { format } from 'date-fns';
 import { Plus, X, Edit2, Trash2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { addTask, getUserTasks, updateTask, deleteTask } from '../services/taskService';
 
 export interface Task {
   id: string;
@@ -19,20 +21,27 @@ interface TaskCalendarProps {
 }
 
 const TaskCalendar: React.FC<TaskCalendarProps> = ({ onDateSelect, onTasksChange }) => {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    // Initialize tasks from localStorage
-    const savedTasks = localStorage.getItem('preptrack_tasks');
-    return savedTasks ? JSON.parse(savedTasks) : [];
-  });
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<Partial<Task>>({});
   const [isEditing, setIsEditing] = useState(false);
 
-  // Update localStorage whenever tasks change
+  // Fetch tasks from Firebase when component mounts
   useEffect(() => {
-    localStorage.setItem('preptrack_tasks', JSON.stringify(tasks));
-    onTasksChange?.(tasks);
-  }, [tasks, onTasksChange]);
+    const fetchTasks = async () => {
+      if (user?.uid) {
+        try {
+          const userTasks = await getUserTasks(user.uid);
+          setTasks(userTasks);
+          onTasksChange?.(userTasks);
+        } catch (error) {
+          console.error('Error fetching tasks:', error);
+        }
+      }
+    };
+    fetchTasks();
+  }, [user?.uid, onTasksChange]);
 
   const handleDateClick = (arg: { date: Date }) => {
     const formattedDate = format(arg.date, 'yyyy-MM-dd');
@@ -60,31 +69,42 @@ const TaskCalendar: React.FC<TaskCalendarProps> = ({ onDateSelect, onTasksChange
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentTask.title && currentTask.date) {
-      let newTasks: Task[];
+    if (!currentTask.title || !currentTask.date || !user?.uid) return;
+
+    try {
       if (isEditing && currentTask.id) {
-        newTasks = tasks.map(task => 
+        await updateTask(currentTask.id, currentTask);
+        const updatedTasks = tasks.map(task =>
           task.id === currentTask.id ? { ...currentTask as Task } : task
         );
+        setTasks(updatedTasks);
       } else {
-        newTasks = [...tasks, { 
-          ...currentTask as Task,
-          id: Math.random().toString(36).substr(2, 9)
-        }];
+        const newTask = await addTask(user.uid, {
+          title: currentTask.title,
+          date: currentTask.date,
+          description: currentTask.description || ''
+        });
+        setTasks([...tasks, newTask]);
       }
-      setTasks(newTasks);
       setIsModalOpen(false);
       setCurrentTask({});
+    } catch (error) {
+      console.error('Error saving task:', error);
     }
   };
 
-  const handleDelete = (id: string) => {
-    const newTasks = tasks.filter(task => task.id !== id);
-    setTasks(newTasks);
-    setIsModalOpen(false);
-    setCurrentTask({});
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteTask(id);
+      const newTasks = tasks.filter(task => task.id !== id);
+      setTasks(newTasks);
+      setIsModalOpen(false);
+      setCurrentTask({});
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
   };
 
   const events = tasks.map(task => ({

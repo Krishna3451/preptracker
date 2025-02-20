@@ -51,7 +51,7 @@ const defaultChapters: { [key: string]: string[] } = {
     'Dual Nature of Radiation and Matter',
     'Atoms',
     'Nuclei',
-    'Semiconductor Electronics'
+    'Semiconductor'
 
   ],
 
@@ -69,7 +69,7 @@ const defaultChapters: { [key: string]: string[] } = {
     'Solutions',
     'Electrochemistry',
     'Chemical Kinetics',
-    'p-Block Elements (Group 15 to 18)',
+    'p-Block Elements (Group 15,16,17,18)',
     'd & f-Block Elements',
     'Coordination Compounds',
     'Haloalkanes & Haloarenes',
