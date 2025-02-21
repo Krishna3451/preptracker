@@ -73,16 +73,17 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
       { id: 'c11', name: 'Hydrocarbons' },
       { id: 'c12', name: 'Solutions' },
       { id: 'c13', name: 'Electrochemistry' },
-      { id: 'c14', name: 'p-Block Elements (Group 15,16,17,18)' },
-      { id: 'c15', name: 'd & f-Block Elements' },
-      { id: 'c16', name: 'Coordination Compounds' },
-      { id: 'c17', name: 'Haloalkanes & Haloarenes' },
-      { id: 'c18', name: 'Alcohol, Phenol and Ether' },
-      { id: 'c19', name: 'Aldehyde and Ketone' },
-      { id: 'c20', name: 'Carboxylic Acids' },
-      { id: 'c21', name: 'Amines' },
-      { id: 'c22', name: 'Biomolecules' },
-      { id: 'c23', name: 'Practical Chemistry' },
+      { id: 'c14', name: 'Chemical Kinetics' },
+      { id: 'c15', name: 'p-Block Elements (Group 15,16,17,18)' },
+      { id: 'c16', name: 'd & f-Block Elements' },
+      { id: 'c17', name: 'Coordination Compounds' },
+      { id: 'c18', name: 'Haloalkanes & Haloarenes' },
+      { id: 'c19', name: 'Alcohol, Phenol and Ether' },
+      { id: 'c20', name: 'Aldehyde and Ketone' },
+      { id: 'c21', name: 'Carboxylic Acid' },
+      { id: 'c22', name: 'Amines' },
+      { id: 'c23', name: 'Biomolecules' },
+      { id: 'c24', name: 'Practical Chemistry' },
       
     ],
     Biology: [
@@ -94,28 +95,31 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
       { id: 'b6', name: 'Anatomy of Flowering Plants' },
       { id: 'b7', name: 'Structural Organisation in Animals' },
       { id: 'b8', name: 'Cell-The Unit of Life' },
-      { id: 'b9', name: 'Photosynthesis in Higher Plants' },
-      { id: 'b10', name: 'Respiration in Plants' },
-      { id: 'b11', name: 'Plant Growth and Development' },
-      { id: 'b12', name: 'Breathing and Exchnage of Gases' },
-      { id: 'b13', name: 'Body Fluids and Circulation' },
-      { id: 'b14', name: 'Excretory Products & their elimination' },
-      { id: 'b15', name: 'Locomotion and movements' },
-      { id: 'b16', name: 'Neural Control and Coordination' },
-      { id: 'b17', name: 'Chemical Coordination and Integration' },
-      { id: 'b18', name: 'Sexual Reproduction in Flowering Plants' },
-      { id: 'b19', name: 'Human Reproduction'},
-      { id: 'b20', name: 'Reproductive Health' },
-      { id: 'b21', name: 'Principles of Inheritance and Variation' },
-      { id: 'b22', name: 'Molecular Basis of Inheritance' },
-      { id: 'b23', name: 'Evolution' },
-      { id: 'b24', name: 'Human Health & Diseases' },
-      { id: 'b25', name: 'Microbes in human Welfare' },
-      { id: 'b26', name: 'Biotechnology-Principles and Processes' },
-      { id: 'b27', name: 'Biotechnology and Its Application' },
-      { id: 'b28', name: 'Organism and Populations' },
-      { id: 'b29', name: 'Ecosystem' },
-      { id: 'b30', name: 'Biodiversity and Conservation' },
+      { id: 'b9', name: 'Biomolecules' },
+      { id: 'b10', name: 'Cell Cycle and Cell Division' },
+      { id: 'b11', name: 'Photosynthesis in Higher Plants' },
+      { id: 'b12', name: 'Respiration in Plants' },
+      { id: 'b13', name: 'Plant Growth and Development' },
+      { id: 'b14', name: 'Breathing and Exchnage of Gases' },
+      { id: 'b15', name: 'Body Fluids and Circulation' },
+      { id: 'b16', name: 'Excretory Products & their elimination' },
+      { id: 'b17', name: 'Locomotion and movements' },
+      { id: 'b18', name: 'Neural Control and Coordination' },
+      { id: 'b19', name: 'Chemical Coordination and Integration' },
+      { id: 'b20', name: 'Sexual Reproduction in Flowering Plants' },
+      { id: 'b21', name: 'Human Reproduction'},
+      { id: 'b22', name: 'Reproductive Health' },
+      { id: 'b23', name: 'Principles of Inheritance and Variation' },
+      { id: 'b24', name: 'Molecular Basis of Inheritance' },
+      { id: 'b25', name: 'Evolution' },
+      { id: 'b26', name: 'Human Health & Diseases' },
+      { id: 'b27', name: 'Microbes in human Welfare' },
+      { id: 'b28', name: 'Biotechnology-Principles and Processes' },
+      { id: 'b29', name: 'Biotechnology and Its Application' },
+      { id: 'b30', name: 'Organism and Populations' },
+      { id: 'b31', name: 'Ecosystem' },
+      { id: 'b32', name: 'Biodiversity and Conservation' },
+
      
     ],
   };
@@ -379,6 +383,7 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-white">Name your test</h2>
             <div className="space-y-2">
+
               <input
                 type="text"
                 value={testName}
@@ -387,6 +392,7 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
                 maxLength={45}
                 className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+
               <div className="flex justify-between text-sm">
                 <p className="text-gray-400">Suggested name for your test</p>
                 <p className="text-gray-400">{testName.length}/45</p>
