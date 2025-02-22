@@ -1,20 +1,149 @@
 import React, { useState } from 'react';
 import { X, ChevronRight, ChevronLeft, Clock } from 'lucide-react';
+import TestInterface from './TestInterface';
+
+interface Subject {
+  id: string;
+  name: string;
+}
+
+interface Chapter {
+  id: string;
+  name: string;
+}
+
+interface ChapterMap {
+  [key: string]: Chapter[];
+}
 
 interface TestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (testConfig: any) => void;
+  onSubmit: (testConfig: TestConfig) => void;
+}
+
+interface TestConfig {
+  testName: string;
+  selectedSubjects: string[];
+  questionCount: { [key: string]: number };
+  timeInMinutes: number;
+  selectedChapters: string[];
 }
 
 const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [step, setStep] = useState(1);
   const [testName, setTestName] = useState('');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [questionCount, setQuestionCount] = useState<number>(0);
-  const [timeInMinutes, setTimeInMinutes] = useState<number>(0);
+  const [questionCount, setQuestionCount] = useState<{ [key: string]: number }>({
+    physics: 10,
+    chemistry: 10,
+    biology: 10
+  });
+  const [timeInMinutes, setTimeInMinutes] = useState(60);
   const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
   const [expandedSubjects, setExpandedSubjects] = useState<string[]>([]);
+  const [showTest, setShowTest] = useState(false);
+
+  const subjects: Subject[] = [
+    { id: 'viQ2R4q7DVRyhecVTrSg', name: 'Physics' },
+    { id: 'cZDUFeYGd0cIEPlWJJuz', name: 'Chemistry' },
+    { id: 'oreFsSKPpPfrnxL8G1xf', name: 'Biology' }
+  ];
+
+  const chapters: ChapterMap = {
+    Physics: [
+      { id: 'UR7lQgTXa6O1Ja2MjELt', name: 'Basic Mathematics' },
+      { id: 'WVYjeVoGqiyUQZowKvOF', name: 'Units and Measurements' },
+      { id: 'vLjjoDj6mQrfB47Uj4jT', name: 'Motion in a Straight Line' },
+      { id: 'tlH4MPbfXhb8HFlVgIX7', name: 'Motion in a Plane' },
+      { id: 'EDpMxMIBpTqjNJKWlnZo', name: 'Laws of Motion' },
+      { id: 'ydpsND9XYU5Ctz1Jr0ir', name: 'Work, Energy and Power' },
+      { id: 'I9Ex2UHsP10IL9VMr0fl', name: 'System of Particles' },
+      { id: 'AbEltnwRUfIHpZ7RYLXE', name: 'Rotation Motion' },
+      { id: 'rBYUWaquerpt6DCEt8Ma', name: 'Gravitation' },
+      { id: 'NbY1nCIK4CbZN3si4FLH', name: 'Mechanical Properties of Solid' },
+      { id: '8COC00fa3TkHFvQfiyEk', name: 'Mechanical Properties of Fluids' },
+      { id: '83niumaqol0DnrgYJ1Rj', name: 'Thermal Properties of Matter' },
+      { id: 'F5AMt08I1dWxE92TqnXG', name: 'Thermodynamics' },
+      { id: 'K6eONmqzwLsFYLDI3vpa', name: 'Kinetic Theory of Gases' },
+      { id: 'OAzwKrBtk6iZvJsaTQIs', name: 'Oscillations' },
+      { id: '90OZl6yE6IYauh1LsdqS', name: 'Waves' },
+      { id: '8GPJNawvt6J5EEiXRA0G', name: 'Electrostatic' },
+      { id: 'O7WgeGZ0n1zbxK7DvfFb', name: 'Capacitance' },
+      { id: '9NksgfWD616fnwuZtWd4', name: 'Current Electricity' },
+      { id: 'u5ae2A7AXoaGOkrehirY', name: 'Moving Charges & Magnetism' },
+      { id: 'v6jSjiUaiqU8rp8qWq4f', name: 'Magnetism & Matter' },
+      { id: 'poyyLhw7WnxziuwE72rA', name: 'EMI' },
+      { id: 'psyWtKDbnjXZDpckZkdB', name: 'Alternating Current' },
+      { id: 'aQjZB2HZQ8adp0OL8aDT', name: 'Electromagnetic Waves' },
+      { id: 'H86iz5LOXXAo0BLbEZMX', name: 'Ray optics' },
+      { id: 'XqPgHgya2AASoEY8IU2T', name: 'Wave Optics' },
+      { id: '3DK05k4JZMvQcXXvXN7R', name: 'Dual Nature of Radiation and Matter' },
+      { id: 'GFgznll08oV62N55b8KQ', name: 'Atoms' },
+      { id: 'Tw7vLs2sI9raIZsarADj', name: 'Nuclei' },
+      { id: 'OQt6gFATlMIP4F7xq5EI', name: 'Semiconductor' },
+    ],
+    Chemistry: [
+      { id: 'xp236Zm1X8uC6WXrMWJW', name: 'Some Basic Concept of Chemistry' },
+      { id: 'd0rjAMP9aiL3eMtxvQzQ', name: 'Structure of Atom' },
+      { id: '3FKKTzEf5lYYRGGYEKoi', name: 'Classification of Elements & Periodicity' },
+      { id: 'bqGcfblgDyQs8oscZO7g', name: 'Chemical Bonding' },
+      { id: 'F5AMt08I1dWxE92TqnXG', name: 'Thermodynamics' },
+      { id: 'VC0b3PGLapQc6QZ8qMo0', name: 'Chemical Equilibrium' },
+      { id: 'CooCc5yQerI0KJOK7DX5', name: 'Ionic Equilibrium' },
+      { id: '3cJOSV0IYMWFkBLQTihq', name: 'Redox Reactions' },
+      { id: 'dCo74VhvuxhqXj7ayziF', name: 'p-Block Elements (Group 13 & 14)' },
+      { id: 'MRH5jPRVrNXEy5FWkkaj', name: 'Organic Chemistry: Some Basic Principles & Techniques' },
+      { id: 'vSbMVoLsvnUiuUNxTHaR', name: 'Hydrocarbons' },
+      { id: 'envWb3qkC4ZSFHF8x5YN', name: 'Solutions' },
+      { id: 'si8YKtWiT0Nq4780HQ1N', name: 'Electrochemistry' },
+      { id: 'wORHNOk9YwmcLxEwMJIh', name: 'Chemical Kinetics' },
+      { id: 'BAOozKNPPKT8v5dLhQma', name: 'p-Block Elements (Group 15,16,17,18)' },
+      { id: 'F47iI14w5fJ8UVL7QKMq', name: 'd & f-Block Elements' },
+      { id: 'bgsgtrD9C3YuMrElRAaP', name: 'Coordination Compounds' },
+      { id: 'jPKiMSmjeEBEqfJHHuaY', name: 'Haloalkanes & Haloarenes' },
+      { id: 'Jq8IHcWNp20VpqqQ8MGX', name: 'Alcohol, Phenol and Ether' },
+      { id: 'cjB9VYoFMuM7GOMDNgIw', name: 'Aldehyde and Ketone' },
+      { id: 'RIpPEjHn3ya3XwhtRGpn', name: 'Carboxylic Acid' },
+      { id: 'sUVlUbJq5FF2c7u78K3Z', name: 'Amines' },
+      { id: '6E42pG1feBYmk8936TDC', name: 'Biomolecules' },
+      { id: 'NoknBR1tsG2t2stGYakP', name: 'Practical Chemistry' },
+    ],
+    Biology: [
+      { id: '2taW41LFt0iepzmSW5dp', name: 'Living World' },
+      { id: 'RInpuxI8yZlg8g2CQH9X', name: 'Biological Classification' },
+      { id: 'xGxozQxQlknr79HVMpGq', name: 'Plant Kingdom' },
+      { id: 'HLdG8QOaLN6jRK0kOXmt', name: 'Animal Kingdom' },
+      { id: '18RcKG0WUOpF55rOyfn7', name: 'Morphology of Flowering Plants' },
+      { id: 'hmn6nkqRgOWMFxuMA0fS', name: 'Anatomy of Flowering Plants' },
+      { id: 'xsEE3r0oTvTZzfNvxnsV', name: 'Structural Organisation in Animals' },
+      { id: 'on82g6JZA6gQfYogXIXR', name: 'Cell-The Unit of Life' },
+      { id: '6E42pG1feBYmk8936TDC', name: 'Biomolecules' },
+      { id: 'fkEmKXIOCRDB89PvzopA', name: 'Cell Cycle and Cell Division' },
+      { id: 'sEN9klIaHwBbFxQ1odjs', name: 'Photosynthesis in Higher Plants' },
+      { id: 'JwLTiaSSAE9WthRWu0vc', name: 'Respiration in Plants' },
+      { id: 'UCHVQ7o08VB9vhDaoQhI', name: 'Plant Growth and Development' },
+      { id: '41GVciLXfTb8tKfsYxXh', name: 'Breathing and Exchange of Gases' },
+      { id: 'mdec58C1K9X2nKjsnodN', name: 'Body Fluids and Circulation' },
+      { id: 'mJQyqnE8btj9OrHh9wyb', name: 'Excretory Products & their elimination' },
+      { id: 'fShWgidyOZXvUENEMb7U', name: 'Locomotion and movements' },
+      { id: 'dlFtAub7vsdivPTaUEZj', name: 'Neural Control and Coordination' },
+      { id: 'xOzlIjIojGfglNXnLfBE', name: 'Chemical Coordination and Integration' },
+      { id: 'EFUPD6oXL5mE4tDhGZ2J', name: 'Sexual Reproduction in Flowering Plants' },
+      { id: 'UAbIQlLL9LKKx5xUnSxF', name: 'Human Reproduction' },
+      { id: '8esVgAR8o4Tf6421LStz', name: 'Reproductive Health' },
+      { id: 'bmcMW1ZMZ3iC6YU2amuF', name: 'Principles of Inheritance and Variation' },
+      { id: 'yA68zTMIXPhRxJXMOC6J', name: 'Molecular Basis of Inheritance' },
+      { id: 'cpAtTxCze7elufykaYvT', name: 'Evolution' },
+      { id: 'I7cWp8TOqh3e2TZVWKuS', name: 'Human Health & Diseases' },
+      { id: '58TFiidI5Ebor6rRpg0B', name: 'Microbes in human Welfare' },
+      { id: '3EKGIuOyZTntGvGqqbL8', name: 'Biotechnology-Principles and Processes' },
+      { id: 'K83Fd7MZKbEWL1rOfTBG', name: 'Biotechnology and Its Application' },
+      { id: '4J5ttWw9nBmts4KINYME', name: 'Organism and Populations' },
+      { id: 'H1ILjQHLuhzqDGd5ExVr', name: 'Ecosystem' },
+      { id: '9ha53VSAXmKiG9pttUyx', name: 'Biodiversity and Conservation' },
+    ],
+  };
 
   const toggleSubjectExpansion = (subject: string) => {
     setExpandedSubjects(prev =>
@@ -24,114 +153,15 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
     );
   };
 
-  const subjects = ['Physics', 'Chemistry', 'Biology'];
-  const questionCounts = [5, 10, 30, 60,90,120,180];
-  const chapters = {
-    Physics: [
-      { id: 'p1', name: 'Basic Mathematics' },
-      { id: 'p2', name: 'Units and Measurements' },
-      { id: 'p3', name: 'Motion in a Straight Line' },
-      { id: 'p4', name: 'Motion in a Plane' },
-      { id: 'p5', name: 'Laws of Motion' },
-      { id: 'p6', name: 'Work, Energy and Power' },
-      { id: 'p7', name: 'System of Particles' },
-      { id: 'p8', name: 'Rotation Motion' },
-      { id: 'p9', name: 'Gravitation' },
-      { id: 'p10', name: 'Mechanical Properties of Solid' },
-      { id: 'p11', name: 'Mechanical Properties of Fluids' },
-      { id: 'p12', name: 'Thermal Properties of Matter' },
-      { id: 'p13', name: 'Thermodynamics' },
-      { id: 'p14', name: 'Kinetic Theory of Gases' },
-      { id: 'p15', name: 'Oscillations' },
-      { id: 'p16', name: 'Waves' },
-      { id: 'p17', name: 'Electrostatic' },
-      { id: 'p18', name: 'Capacitance' },
-      { id: 'p19', name: 'Current Electricity' },
-      { id: 'p20', name: 'Moving Charges & Magnetism' },
-      { id: 'p21', name: 'Magnetism & Matter' },
-      { id: 'p22', name: 'EMI' },
-      { id: 'p23', name: 'Alternating Current' },
-      { id: 'p24', name: 'Electromagnetic Waves' },
-      { id: 'p25', name: 'Ray optics' },
-      { id: 'p26', name: 'Wave Optics' },
-      { id: 'p27', name: 'Dual Nature of Radiation and Matter' },
-      { id: 'p28', name: 'Atoms' },
-      { id: 'p29', name: 'Nuclei' },
-      { id: 'p30', name: 'Semiconductor' },
-    ],
-    Chemistry: [
-      { id: 'c1', name: 'Some Basic Concept of Chemistry' },
-      { id: 'c2', name: 'Structure of Atom' },
-      { id: 'c3', name: 'Classification of Elements & Periodicity' },
-      { id: 'c4', name: 'Chemical Bonding' },
-      { id: 'c5', name: 'Thermodynamics' },
-      { id: 'c6', name: 'Chemical Equilibrium' },
-      { id: 'c7', name: 'Ionic Equilibrium' },
-      { id: 'c8', name: 'Redox Reactions' },
-      { id: 'c9', name: 'p-Block Elements (Group 13 & 14)' },
-      { id: 'c10', name: 'Organic Chemistry: Some Basic Principles & Techniques' },
-      { id: 'c11', name: 'Hydrocarbons' },
-      { id: 'c12', name: 'Solutions' },
-      { id: 'c13', name: 'Electrochemistry' },
-      { id: 'c14', name: 'Chemical Kinetics' },
-      { id: 'c15', name: 'p-Block Elements (Group 15,16,17,18)' },
-      { id: 'c16', name: 'd & f-Block Elements' },
-      { id: 'c17', name: 'Coordination Compounds' },
-      { id: 'c18', name: 'Haloalkanes & Haloarenes' },
-      { id: 'c19', name: 'Alcohol, Phenol and Ether' },
-      { id: 'c20', name: 'Aldehyde and Ketone' },
-      { id: 'c21', name: 'Carboxylic Acid' },
-      { id: 'c22', name: 'Amines' },
-      { id: 'c23', name: 'Biomolecules' },
-      { id: 'c24', name: 'Practical Chemistry' },
-      
-    ],
-    Biology: [
-      { id: 'b1', name: 'Living World' },
-      { id: 'b2', name: 'Biological Classification' },
-      { id: 'b3', name: 'Plant Kingdom' },
-      { id: 'b4', name: 'Animal Kingdom' },
-      { id: 'b5', name: 'Morphology of Flowering Plants' },
-      { id: 'b6', name: 'Anatomy of Flowering Plants' },
-      { id: 'b7', name: 'Structural Organisation in Animals' },
-      { id: 'b8', name: 'Cell-The Unit of Life' },
-      { id: 'b9', name: 'Biomolecules' },
-      { id: 'b10', name: 'Cell Cycle and Cell Division' },
-      { id: 'b11', name: 'Photosynthesis in Higher Plants' },
-      { id: 'b12', name: 'Respiration in Plants' },
-      { id: 'b13', name: 'Plant Growth and Development' },
-      { id: 'b14', name: 'Breathing and Exchnage of Gases' },
-      { id: 'b15', name: 'Body Fluids and Circulation' },
-      { id: 'b16', name: 'Excretory Products & their elimination' },
-      { id: 'b17', name: 'Locomotion and movements' },
-      { id: 'b18', name: 'Neural Control and Coordination' },
-      { id: 'b19', name: 'Chemical Coordination and Integration' },
-      { id: 'b20', name: 'Sexual Reproduction in Flowering Plants' },
-      { id: 'b21', name: 'Human Reproduction'},
-      { id: 'b22', name: 'Reproductive Health' },
-      { id: 'b23', name: 'Principles of Inheritance and Variation' },
-      { id: 'b24', name: 'Molecular Basis of Inheritance' },
-      { id: 'b25', name: 'Evolution' },
-      { id: 'b26', name: 'Human Health & Diseases' },
-      { id: 'b27', name: 'Microbes in human Welfare' },
-      { id: 'b28', name: 'Biotechnology-Principles and Processes' },
-      { id: 'b29', name: 'Biotechnology and Its Application' },
-      { id: 'b30', name: 'Organism and Populations' },
-      { id: 'b31', name: 'Ecosystem' },
-      { id: 'b32', name: 'Biodiversity and Conservation' },
-
-     
-    ],
-  };
-
-  // Reset all state when modal closes
   const resetState = () => {
     setStep(1);
     setTestName('');
     setSelectedSubjects([]);
-    setQuestionCount(0);
-    setTimeInMinutes(0);
+    setQuestionCount({ physics: 10, chemistry: 10, biology: 10 });
+    setTimeInMinutes(60);
     setSelectedChapters([]);
+    setExpandedSubjects([]);
+    setShowTest(false);
   };
 
   const handleClose = () => {
@@ -142,8 +172,7 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const handleNext = () => {
     if (step < 6) {
       if (step === 2) {
-        // When moving from question selection to time, set initial time
-        setTimeInMinutes(questionCount);
+        setTimeInMinutes(60);
       }
       setStep(step + 1);
     }
@@ -153,44 +182,47 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
     if (step > 1) setStep(step - 1);
   };
 
-  const handleSubjectToggle = (subject: string) => {
-    setSelectedSubjects((prev) =>
-      prev.includes(subject)
-        ? prev.filter((s) => s !== subject)
-        : [...prev, subject]
+  const handleSubjectToggle = (subjectName: string) => {
+    setSelectedSubjects(prev =>
+      prev.includes(subjectName)
+        ? prev.filter(s => s !== subjectName)
+        : [...prev, subjectName]
     );
   };
 
-  const handleChapterToggle = (chapterId: string) => {
-    setSelectedChapters((prev) =>
-      prev.includes(chapterId)
-        ? prev.filter((id) => id !== chapterId)
-        : [...prev, chapterId]
-    );
+  const handleChapterSelect = (chapterId: string) => {
+    setSelectedChapters(prev => {
+      if (prev.includes(chapterId)) {
+        return prev.filter(id => id !== chapterId);
+      } else {
+        return [...prev, chapterId];
+      }
+    });
   };
 
   const handleTimeAdjustment = (adjustment: number) => {
     const newTime = timeInMinutes + adjustment;
-    // Allow ±10 minutes adjustment
-    if (newTime >= (questionCount - 10) && newTime <= (questionCount + 10)) {
+    if (newTime >= 0 && newTime <= 180) {
       setTimeInMinutes(newTime);
     }
   };
 
-  const hasChapterFromSubject = (subject: string) => {
-    return selectedChapters.some(chapterId => chapterId.startsWith(subject[0].toLowerCase()));
+  const hasChapterFromSubject = (subjectName: string) => {
+    const subjectChapters = chapters[subjectName] || [];
+    return selectedChapters.some(chapterId => 
+      subjectChapters.some(chapter => chapter.id === chapterId)
+    );
   };
 
-  const canProceed = () => {
+  const canProceed = (): boolean => {
     switch (step) {
       case 1:
         return selectedSubjects.length > 0;
       case 2:
-        return questionCount > 0;
+        return Object.values(questionCount).every(count => count > 0);
       case 3:
         return true;
       case 4:
-        // Check if at least one chapter is selected from each selected subject
         return selectedSubjects.every(subject => hasChapterFromSubject(subject));
       case 5:
         return testName.length > 0;
@@ -201,344 +233,245 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
     }
   };
 
-  const getChapterSelectionStatus = () => {
-    const status = selectedSubjects.map(subject => ({
-      subject,
-      hasChapter: hasChapterFromSubject(subject)
-    }));
-    
-    const incomplete = status.filter(s => !s.hasChapter).map(s => s.subject);
-    if (incomplete.length === 0) return '';
-    
-    return `Please select at least one chapter from: ${incomplete.join(', ')}`;
+  const handleStartTest = () => {
+    const config: TestConfig = {
+      testName,
+      selectedSubjects,
+      questionCount,
+      timeInMinutes,
+      selectedChapters
+    };
+    console.log('Starting test with config:', config);
+    setShowTest(true);
   };
 
   if (!isOpen) return null;
 
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-white">Choose your subjects</h2>
-            <div className="grid grid-cols-1 gap-3">
-              {subjects.map((subject) => (
-                <button
-                  key={subject}
-                  onClick={() => handleSubjectToggle(subject)}
-                  className={`p-4 rounded-lg text-left transition-all transform hover:scale-[1.02] ${
-                    selectedSubjects.includes(subject)
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{subject}</span>
-                    <ChevronRight className="w-5 h-5" />
-                  </div>
-                </button>
-              ))}
+  if (showTest) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white w-full h-full p-4 rounded-lg relative">
+          <TestInterface
+            testName={testName}
+            selectedChapters={selectedChapters}
+            questionCount={questionCount}
+            timeInMinutes={timeInMinutes}
+            onComplete={() => {
+              setShowTest(false);
+              onClose();
+            }}
+            onClose={onClose}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white w-11/12 max-w-2xl p-6 rounded-lg relative">
+        <button
+          onClick={handleClose}
+          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+        >
+          <X size={24} />
+        </button>
+
+        <div className="mb-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Create Test</h2>
+            <div className="text-sm text-gray-500">
+              Step {step} of 6
             </div>
           </div>
-        );
-      case 2:
-        return (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-white">Choose number of questions</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {questionCounts.map((count) => (
-                <button
-                  key={count}
-                  onClick={() => {
-                    setQuestionCount(count);
-                  }}
-                  className={`p-4 rounded-lg text-center transition-all transform hover:scale-[1.02] ${
-                    questionCount === count
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  {count} Questions
-                </button>
-              ))}
-            </div>
+          <div className="h-2 bg-gray-200 rounded-full mt-4">
+            <div
+              className="h-full bg-blue-600 rounded-full transition-all duration-300"
+              style={{ width: `${(step / 6) * 100}%` }}
+            />
           </div>
-        );
-      case 3:
-        return (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-white">Time Allocation</h2>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => handleTimeAdjustment(-10)}
-                className="px-3 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300"
-              >
-                -10 min
-              </button>
-              <div className="flex flex-col items-center gap-1 px-4 py-2 bg-indigo-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-indigo-600" />
-                  <span className="font-medium text-indigo-600">{timeInMinutes} minutes</span>
-                </div>
-                <span className="text-xs text-indigo-400">1 minute per question</span>
-              </div>
-              <button
-                onClick={() => handleTimeAdjustment(10)}
-                className="px-3 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300"
-              >
-                +10 min
-              </button>
-            </div>
-          </div>
-        );
-      case 4:
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-white">Add chapters</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">Don't include out of syllabus Qs</span>
-                <div className="relative inline-block w-10 h-6 transition duration-200 ease-in-out">
-                  <input
-                    type="checkbox"
-                    className="switch-checkbox absolute block w-6 h-6 rounded-full bg-white appearance-none cursor-pointer"
-                  />
-                  <label
-                    className="switch-label block overflow-hidden h-6 rounded-full bg-gray-700 cursor-pointer"
-                  ></label>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-gray-400 text-sm">Select at least 1 chapter from each subject</p>
-              {getChapterSelectionStatus() && (
-                <p className="text-red-400 text-sm">{getChapterSelectionStatus()}</p>
-              )}
-            </div>
-            
-            <div className="space-y-4 flex-grow overflow-auto custom-scrollbar">
-              {selectedSubjects.map((subject) => (
-                <div key={subject} className="p-4 bg-gray-800/50 rounded-xl mb-4 last:mb-0">
-                  <button 
-                    onClick={() => toggleSubjectExpansion(subject)}
-                    className="w-full"
+        </div>
+
+        <div className="min-h-[300px]">
+          {step === 1 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Select Subjects</h3>
+              <div className="space-y-2">
+                {subjects.map((subject) => (
+                  <button
+                    key={subject.id}
+                    onClick={() => handleSubjectToggle(subject.name)}
+                    className={`w-full p-3 rounded-lg border ${
+                      selectedSubjects.includes(subject.name)
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${
-                          subject === 'Physics' ? 'bg-orange-500/20' :
-                          subject === 'Chemistry' ? 'bg-green-500/20' :
-                          'bg-blue-500/20'
-                        }`}>
-                          <div className={`w-6 h-6 rounded-lg ${
-                            subject === 'Physics' ? 'bg-orange-500' :
-                            subject === 'Chemistry' ? 'bg-green-500' :
-                            'bg-blue-500'
-                          }`} />
-                        </div>
-                        <div className="text-left">
-                          <h3 className="font-medium text-white">{subject}</h3>
-                          <p className={`text-sm ${
-                            hasChapterFromSubject(subject) ? 'text-gray-400' : 'text-red-400'
-                          }`}>
-                            {selectedChapters.filter(id => id.startsWith(subject[0].toLowerCase())).length} Chapters Selected
-                            {!hasChapterFromSubject(subject) && ' (Required)'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-indigo-400 hover:text-indigo-300 text-sm font-medium">
-                          {expandedSubjects.includes(subject) ? 'HIDE UNITS' : 'SHOW UNITS'}
-                        </span>
-                      </div>
-                    </div>
+                    {subject.name}
                   </button>
-                  
-                  {expandedSubjects.includes(subject) && (
-                    <div className="mt-3 max-h-[200px] overflow-y-auto custom-scrollbar">
-                      <div className="grid grid-cols-1 gap-2">
-                        {chapters[subject].map((chapter) => (
-                          <button
-                            key={chapter.id}
-                            onClick={() => handleChapterToggle(chapter.id)}
-                            className={`p-3 rounded-lg text-left transition-all w-full hover:shadow-lg ${
-                              selectedChapters.includes(chapter.id)
-                                ? 'bg-gray-700 text-white shadow-md'
-                                : 'text-gray-300 hover:bg-gray-700/50'
-                            }`}
-                          >
-                            <span className="line-clamp-2 text-sm">{chapter.name}</span>
-                          </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Questions per Subject</h3>
+              <div className="grid gap-4">
+                {['physics', 'chemistry', 'biology'].map(subject => (
+                  <div key={subject} className="flex items-center gap-4">
+                    <label className="text-gray-300 w-24 capitalize">{subject}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={questionCount[subject]}
+                      onChange={(e) => setQuestionCount(prev => ({
+                        ...prev,
+                        [subject]: parseInt(e.target.value) || 0
+                      }))}
+                      className="bg-gray-800 text-white px-3 py-2 rounded-lg w-24"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Time Duration</h3>
+              <div className="flex items-center justify-center space-x-4">
+                <button
+                  onClick={() => handleTimeAdjustment(-1)}
+                  className="p-2 rounded-full hover:bg-gray-100"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <div className="flex items-center">
+                  <Clock className="mr-2" size={24} />
+                  <span className="text-2xl font-bold">{timeInMinutes}</span>
+                  <span className="ml-2">minutes</span>
+                </div>
+                <button
+                  onClick={() => handleTimeAdjustment(1)}
+                  className="p-2 rounded-full hover:bg-gray-100"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Select Chapters</h3>
+              <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                {selectedSubjects.map((subjectName) => (
+                  <div key={subjectName} className="border rounded-lg p-4">
+                    <button
+                      onClick={() => toggleSubjectExpansion(subjectName)}
+                      className="w-full flex justify-between items-center"
+                    >
+                      <span className="font-semibold">{subjectName}</span>
+                      <ChevronRight
+                        className={`transform transition-transform ${
+                          expandedSubjects.includes(subjectName) ? 'rotate-90' : ''
+                        }`}
+                      />
+                    </button>
+                    {expandedSubjects.includes(subjectName) && (
+                      <div className="mt-2 space-y-2">
+                        {chapters[subjectName]?.map((chapter) => (
+                          <div key={chapter.id} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id={chapter.id}
+                              checked={selectedChapters.includes(chapter.id)}
+                              onChange={() => handleChapterSelect(chapter.id)}
+                              className="mr-2"
+                            />
+                            <label htmlFor={chapter.id}>{chapter.name}</label>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        );
-      case 5:
-        return (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-white">Name your test</h2>
-            <div className="space-y-2">
+          )}
 
+          {step === 5 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Test Name</h3>
               <input
                 type="text"
                 value={testName}
                 onChange={(e) => setTestName(e.target.value)}
                 placeholder="Enter test name"
-                maxLength={45}
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-3 border rounded-lg"
               />
-
-              <div className="flex justify-between text-sm">
-                <p className="text-gray-400">Suggested name for your test</p>
-                <p className="text-gray-400">{testName.length}/45</p>
-              </div>
-              <button
-                onClick={() => setTestName('PC - Test 1')}
-                className="text-sm text-indigo-400 hover:text-indigo-300"
-              >
-                Click to use the name "PC - Test 1"
-              </button>
             </div>
-          </div>
-        );
-      case 6:
-        return (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-white">Preview your test</h2>
-            <div className="space-y-4 bg-gray-800/50 rounded-xl p-4">
-              <div className="space-y-2">
-                <h3 className="text-lg font-medium text-white">{testName}</h3>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-400">{timeInMinutes} minutes</span>
+          )}
+
+          {step === 6 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Review</h3>
+              <div className="space-y-4">
+                <div>
+                  <span className="font-semibold">Test Name:</span> {testName}
+                </div>
+                <div>
+                  <span className="font-semibold">Subjects:</span>{' '}
+                  {selectedSubjects.join(', ')}
+                </div>
+                <div>
+                  <span className="font-semibold">Questions:</span>{' '}
+                  {Object.values(questionCount).join(', ')}
+                </div>
+                <div>
+                  <span className="font-semibold">Time:</span> {timeInMinutes} minutes
+                </div>
+                <div>
+                  <span className="font-semibold">Selected Chapters:</span>{' '}
+                  {selectedChapters.length}
                 </div>
               </div>
-              
-              <div className="space-y-1">
-                <h4 className="text-sm font-medium text-gray-300">Questions</h4>
-                <p className="text-gray-400">{questionCount} questions total</p>
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium text-gray-300">Selected Chapters</h4>
-                {selectedSubjects.map((subject) => (
-                  <div key={subject} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${subject === 'Physics' ? 'bg-orange-500' : subject === 'Chemistry' ? 'bg-green-500' : 'bg-blue-500'}`} />
-                      <span className="text-gray-300">{subject}</span>
-                    </div>
-                    <div className="pl-4 space-y-1">
-                      {chapters[subject]
-                        .filter((chapter) => selectedChapters.includes(chapter.id))
-                        .map((chapter) => (
-                          <p key={chapter.id} className="text-sm text-gray-400">{chapter.name}</p>
-                        ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
-          </div>
-        );
-    }
-  };
+          )}
+        </div>
 
-  return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={(e) => {
-        // Only close if clicking the outer container
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
-      }}
-    >
-      {/* Blur Background */}
-      <div 
-        className="absolute inset-0 bg-black bg-opacity-70 backdrop-blur-sm"
-      />
-      
-      {/* Modal */}
-      <div 
-        className="relative w-full max-w-lg mx-4 transform transition-all"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="relative bg-gray-900 rounded-2xl shadow-2xl overflow-hidden min-h-[500px] flex flex-col">
-          {/* Progress Bar */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gray-800">
-            <div 
-              className="h-full bg-indigo-600 transition-all duration-300"
-              style={{ width: `${(step / 6) * 100}%` }}
-            />
-          </div>
-
-          {/* Header */}
-          <div className="flex justify-between items-center px-6 py-4 border-b border-gray-800">
-            <h1 className="text-lg font-semibold text-white">Create your own test</h1>
+        <div className="flex justify-between mt-6">
+          {step > 1 ? (
             <button
-              onClick={handleClose}
-              className="p-1 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+              onClick={handlePrevious}
+              className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg"
             >
-              <X className="w-5 h-5" />
+              Previous
             </button>
-          </div>
-
-          {/* Content */}
-          <div className="p-6 flex-grow overflow-hidden flex flex-col">
-            {renderStep()}
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-4 bg-gray-900 border-t border-gray-800">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-1">
-                  {selectedSubjects.map((subject) => (
-                    <span
-                      key={subject}
-                      className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-900 text-indigo-300"
-                    >
-                      {subject.slice(0, 3)}
-                    </span>
-                  ))}
-                </div>
-                {questionCount > 0 && (
-                  <span className="text-sm text-gray-400">
-                    {questionCount} Qs • {timeInMinutes} Mins
-                  </span>
-                )}
-              </div>
-              <div className="flex space-x-3">
-                {step > 1 && (
-                  <button
-                    onClick={handlePrevious}
-                    className="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors"
-                  >
-                    Previous
-                  </button>
-                )}
-                <button
-                  onClick={step === 6 ? () => {
-                    onSubmit({ testName, selectedSubjects, questionCount, timeInMinutes, selectedChapters });
-                    resetState();
-                  } : handleNext}
-                  disabled={!canProceed()}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    canProceed()
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-500'
-                      : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  {step === 6 ? 'Create Test' : 'Next'}
-                </button>
-              </div>
-            </div>
-          </div>
+          ) : (
+            <div></div>
+          )}
+          {step < 6 ? (
+            <button
+              onClick={handleNext}
+              disabled={!canProceed()}
+              className={`px-4 py-2 rounded-lg ${
+                canProceed()
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              Next
+            </button>
+          ) : (
+            <button
+              onClick={handleStartTest}
+              className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg"
+            >
+              Start Test
+            </button>
+          )}
         </div>
       </div>
     </div>
