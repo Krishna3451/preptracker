@@ -1,16 +1,28 @@
 import { db } from '../config/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 
-export interface TestResult {
-  userId: string;
-  subject: string;
+export interface QuestionResult {
+  question: string;
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  timeTaken: number;
   chapter: string;
+  subject: string;
+}
+
+export interface TestResult {
+  id?: string;
+  userId: string;
+  testName: string;
+  subjects: string[];
   score: number;
   totalQuestions: number;
   timestamp: string;
   correctAnswers: number;
   incorrectAnswers: number;
   timeTaken: number;
+  questions: QuestionResult[];
 }
 
 export interface UserRank {
@@ -29,6 +41,15 @@ export interface SubjectAnalytics {
   strongChapters: string[];
   totalTimeTaken: number;
   averageTimeTaken: number;
+}
+
+interface SubjectData {
+  totalScore: number;
+  totalTests: number;
+  scores: number[];
+  chapterScores: Map<string, number[]>;
+  totalTime: number;
+  times: number[];
 }
 
 export const getUserRank = async (userId: string): Promise<UserRank | null> => {
@@ -82,73 +103,135 @@ export const getUserRank = async (userId: string): Promise<UserRank | null> => {
   }
 };
 
+// Utility functions for data validation and calculations
+const validateTestResult = (result: TestResult): boolean => {
+  if (!result || typeof result !== 'object') return false;
+  if (!Array.isArray(result.questions) || !Array.isArray(result.subjects)) return false;
+  if (typeof result.score !== 'number' || result.score < 0 || result.score > 100) return false;
+  if (typeof result.timeTaken !== 'number' || result.timeTaken < 0) return false;
+  if (typeof result.correctAnswers !== 'number' || result.correctAnswers < 0) return false;
+  if (typeof result.totalQuestions !== 'number' || result.totalQuestions < 0) return false;
+  if (result.correctAnswers > result.totalQuestions) return false;
+  
+  // Validate that the number of correct answers matches the questions array
+  const actualCorrect = result.questions.filter(q => q.isCorrect).length;
+  if (actualCorrect !== result.correctAnswers) return false;
+  
+  return true;
+};
+
+const roundToTwoDecimals = (num: number): number => {
+  return Math.round((num + Number.EPSILON) * 100) / 100;
+};
+
+const calculateAverageWithVerification = (total: number, count: number): number => {
+  if (count === 0) return 0;
+  if (typeof total !== 'number' || typeof count !== 'number') return 0;
+  const average = total / count;
+  return roundToTwoDecimals(average);
+};
+
 export const getSubjectAnalytics = async (userId: string): Promise<SubjectAnalytics[]> => {
+  if (!userId) throw new Error('User ID is required');
+
   try {
     const resultsRef = collection(db, 'testResults');
-    const userResultsQuery = query(resultsRef, where('userId', '==', userId));
+    const userResultsQuery = query(
+      resultsRef, 
+      where('userId', '==', userId),
+      orderBy('timestamp', 'desc')
+    );
     const resultsSnapshot = await getDocs(userResultsQuery);
     
-    const subjectData = new Map<string, {
-      totalScore: number;
-      totalTests: number;
-      scores: number[];
-      chapterScores: Map<string, number[]>;
-      totalTime: number;
-      times: number[];
-    }>();
+    const subjectData = new Map<string, SubjectData>();
+    let invalidDataCount = 0;
 
-    // Process all test results
+    // Process all test results with validation
     resultsSnapshot.docs.forEach(doc => {
       const result = doc.data() as TestResult;
-      const current = subjectData.get(result.subject) || {
-        totalScore: 0,
-        totalTests: 0,
-        scores: [],
-        chapterScores: new Map(),
-        totalTime: 0,
-        times: []
-      };
+      
+      // Skip invalid test results
+      if (!validateTestResult(result)) {
+        invalidDataCount++;
+        console.error(`Invalid test result found: ${doc.id}`);
+        return;
+      }
+      
+      // Process each subject in the test
+      result.subjects.forEach(subject => {
+        const current = subjectData.get(subject) || {
+          totalScore: 0,
+          totalTests: 0,
+          scores: [] as number[],
+          chapterScores: new Map<string, number[]>(),
+          totalTime: 0,
+          times: [] as number[]
+        };
 
-      current.totalScore += result.score;
-      current.totalTests += 1;
-      current.scores.push(result.score);
-      current.totalTime += result.timeTaken;
-      current.times.push(result.timeTaken);
+        // Update aggregates with validation
+        current.totalScore = roundToTwoDecimals(current.totalScore + result.score);
+        current.totalTests++;
+        current.scores.push(roundToTwoDecimals(result.score));
+        current.totalTime = roundToTwoDecimals(current.totalTime + result.timeTaken);
+        current.times.push(result.timeTaken);
 
-      const chapterScores = current.chapterScores.get(result.chapter) || [];
-      chapterScores.push(result.score);
-      current.chapterScores.set(result.chapter, chapterScores);
+        // Process chapter scores with validation
+        const subjectQuestions = result.questions.filter(q => q.subject === subject);
+        subjectQuestions.forEach(q => {
+          if (!q.chapter) return; // Skip questions without chapter info
+          
+          const chapterScores = current.chapterScores.get(q.chapter) || [];
+          const score = q.isCorrect ? 100 : 0;
+          chapterScores.push(score);
+          current.chapterScores.set(q.chapter, chapterScores);
+        });
 
-      subjectData.set(result.subject, current);
+        subjectData.set(subject, current);
+      });
     });
 
-    // Convert to final analytics format
-    return Array.from(subjectData.entries()).map(([subject, data]) => {
-      const averageScore = data.totalScore / data.totalTests;
-      const bestScore = Math.max(...data.scores);
-      
-      // Calculate chapter performance
-      const chapterPerformance = Array.from(data.chapterScores.entries()).map(([chapter, scores]) => ({
-        chapter,
-        average: scores.reduce((a, b) => a + b, 0) / scores.length
-      }));
+    if (invalidDataCount > 0) {
+      console.warn(`Found ${invalidDataCount} invalid test results while processing analytics`);
+    }
 
-      // Sort chapters by average score
-      chapterPerformance.sort((a, b) => a.average - b.average);
+    // Convert to final analytics format with additional verification
+    return Array.from(subjectData.entries()).map(([subject, data]) => {
+      // Calculate metrics with verification
+      const averageScore = calculateAverageWithVerification(data.totalScore, data.totalTests);
+      const bestScore = data.scores.length > 0 ? Math.max(...data.scores) : 0;
+      
+      // Calculate chapter performance with verification
+      const chapterPerformance = Array.from(data.chapterScores.entries())
+        .filter(([_, scores]) => scores.length >= 3) // Only include chapters with sufficient data
+        .map(([chapter, scores]) => ({
+          chapter,
+          average: calculateAverageWithVerification(
+            scores.reduce((a, b) => a + b, 0),
+            scores.length
+          ),
+          totalQuestions: scores.length
+        }))
+        .filter(cp => !isNaN(cp.average)); // Remove any invalid calculations
+
+      // Sort chapters by average score with minimum question threshold
+      const sortedByScore = [...chapterPerformance]
+        .sort((a, b) => a.average - b.average);
+      const sortedByScoreDesc = [...chapterPerformance]
+        .sort((a, b) => b.average - a.average);
 
       return {
         subject,
         totalTests: data.totalTests,
         averageScore,
         bestScore,
-        weakChapters: chapterPerformance.slice(0, 3).map(cp => cp.chapter),
-        strongChapters: chapterPerformance.slice(-3).map(cp => cp.chapter),
-        totalTimeTaken: data.totalTime,
-        averageTimeTaken: data.totalTime / data.totalTests
+        weakChapters: sortedByScore.slice(0, 3).map(cp => cp.chapter),
+        strongChapters: sortedByScoreDesc.slice(0, 3).map(cp => cp.chapter),
+        totalTimeTaken: roundToTwoDecimals(data.totalTime),
+        averageTimeTaken: calculateAverageWithVerification(data.totalTime, data.totalTests)
       };
     });
   } catch (error) {
     console.error('Error getting subject analytics:', error);
-    return [];
+    throw new Error('Failed to process analytics data accurately');
   }
 };

@@ -37,6 +37,41 @@ interface TestInterfaceProps {
   timeInMinutes: number;
   onComplete: () => void;
   onClose: () => void;
+  selectedSubjects: string[];
+}
+
+interface SubjectAnalysis {
+  total: number;
+  correct: number;
+  incorrect: number;
+  unattempted: number;
+  score: number;
+}
+
+interface TestQuestion {
+  question: {
+    text: string;
+    image: string | null;
+  };
+  selectedOption: string | null;
+  correctOption: string;
+  score: number;
+  subject: string;
+  isCorrect: boolean;
+}
+
+interface TestResults {
+  testName: string;
+  totalQuestions: number;
+  attemptedQuestions: number;
+  correctAnswers: number;
+  incorrectAnswers: number;
+  score: number;
+  timeSpent: number;
+  subjectWiseAnalysis: Record<string, SubjectAnalysis>;
+  questions: TestQuestion[];
+  timestamp: Date;
+  userId: string | undefined;
 }
 
 // Configuration for MathJax
@@ -60,6 +95,7 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
   timeInMinutes,
   onComplete,
   onClose,
+  selectedSubjects,
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -67,9 +103,10 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
   const [timeLeft, setTimeLeft] = useState(timeInMinutes * 60);
   const [loading, setLoading] = useState(true);
   const [markedForReview, setMarkedForReview] = useState<Set<number>>(new Set());
-  const [activeSubject, setActiveSubject] = useState('physics');
+  const [activeSubject, setActiveSubject] = useState('');
   const [showResults, setShowResults] = useState(false);
-  const [testResults, setTestResults] = useState<any>(null);
+  const [testResults, setTestResults] = useState<TestResults | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const subjectMapping = {
     'viQ2R4q7DVRyhecVTrSg': 'physics',
@@ -83,39 +120,67 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
     'biology': 'oreFsSKPpPfrnxL8G1xf'
   };
 
+  // Set initial active subject
+  useEffect(() => {
+    const subjects = Object.keys(questionCount);
+    if (subjects.length > 0) {
+      setActiveSubject(subjects[0]);
+    }
+  }, [questionCount]);
+
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
         const questionsRef = collection(db, 'questions');
-        const q = query(
-          questionsRef,
-          where('chapters', 'array-contains-any', selectedChapters)
-        );
-        const querySnapshot = await getDocs(q);
         const fetchedQuestions: { [key: string]: Question[] } = {
           physics: [],
           chemistry: [],
           biology: []
         };
-        
-        querySnapshot.forEach((doc) => {
-          const data = doc.data() as Question;
-          const subjectId = data.subjects[0]; // Assuming one subject per question
-          const subjectKey = subjectMapping[subjectId as keyof typeof subjectMapping];
-          if (subjectKey) {
-            fetchedQuestions[subjectKey].push({
-              ...data,
-              _id: doc.id,
-            });
-          }
-        });
+
+        // Split selectedChapters into chunks of 30 (Firebase's limit)
+        const chapterChunks = [];
+        for (let i = 0; i < selectedChapters.length; i += 30) {
+          chapterChunks.push(selectedChapters.slice(i, i + 30));
+        }
+
+        // Fetch questions for each chunk
+        for (const chapterChunk of chapterChunks) {
+          const q = query(
+            questionsRef,
+            where('chapters', 'array-contains-any', chapterChunk)
+          );
+          const querySnapshot = await getDocs(q);
+          
+          querySnapshot.forEach((doc) => {
+            const data = doc.data() as Question;
+            const subjectId = data.subjects[0]; // Assuming one subject per question
+            const subjectKey = subjectMapping[subjectId as keyof typeof subjectMapping];
+            if (subjectKey) {
+              // Avoid duplicate questions
+              if (!fetchedQuestions[subjectKey].some(q => q._id === doc.id)) {
+                fetchedQuestions[subjectKey].push({
+                  ...data,
+                  _id: doc.id,
+                });
+              }
+            }
+          });
+        }
 
         // Shuffle and limit questions per subject
         const finalQuestions: Question[] = [];
         Object.entries(fetchedQuestions).forEach(([subject, questions]) => {
-          const shuffled = questions.sort(() => 0.5 - Math.random());
-          finalQuestions.push(...shuffled.slice(0, questionCount[subject] || 0));
+          if (questionCount[subject]) {
+            const shuffled = questions.sort(() => 0.5 - Math.random());
+            const selectedCount = Math.min(questionCount[subject], shuffled.length);
+            finalQuestions.push(...shuffled.slice(0, selectedCount));
+          }
         });
+
+        if (finalQuestions.length === 0) {
+          console.warn('No questions found for the selected chapters');
+        }
 
         setQuestions(finalQuestions);
         setLoading(false);
@@ -167,7 +232,7 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
   };
 
   const calculateResults = () => {
-    const results = {
+    const results: TestResults = {
       testName,
       totalQuestions: questions.length,
       attemptedQuestions: Object.keys(selectedAnswers).length,
@@ -175,14 +240,14 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
       incorrectAnswers: 0,
       score: 0,
       timeSpent: timeInMinutes * 60 - timeLeft,
-      subjectWiseAnalysis: {} as any,
-      questions: [] as any[],
+      subjectWiseAnalysis: {},
+      questions: [],
       timestamp: new Date(),
       userId: auth.currentUser?.uid
     };
 
     // Initialize subject-wise analysis
-    const subjectAnalysis: { [key: string]: any } = {};
+    const subjectAnalysis: Record<string, SubjectAnalysis> = {};
     Object.keys(subjectMapping).forEach(subjectId => {
       const subject = subjectMapping[subjectId as keyof typeof subjectMapping];
       subjectAnalysis[subject] = {
@@ -235,7 +300,8 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
         )?.text : null,
         correctOption: correctOption?.text,
         score,
-        subject
+        subject,
+        isCorrect
       });
     });
 
@@ -258,9 +324,30 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
         return;
       }
 
-      const db = getFirestore();
-      const userTestsRef = collection(db, 'users', user.uid, 'tests');
-      await addDoc(userTestsRef, results);
+      // Prepare test results in the format expected by TestResult interface
+      const testResult = {
+        userId: user.uid,
+        testName,
+        subjects: Object.keys(questionCount),
+        score: results.score,
+        totalQuestions: results.totalQuestions,
+        timestamp: new Date().toISOString(),
+        correctAnswers: results.correctAnswers,
+        incorrectAnswers: results.incorrectAnswers,
+        timeTaken: timeInMinutes * 60 - timeLeft,
+        questions: results.questions.map((q: any) => ({
+          question: q.question.text,
+          userAnswer: q.selectedOption || '',
+          correctAnswer: q.correctOption,
+          isCorrect: q.score > 0,
+          timeTaken: Math.round((timeInMinutes * 60 - timeLeft) / results.totalQuestions), // approximate time per question
+          chapter: questions.find(origQ => origQ.question.text === q.question.text)?.chapters[0] || '',
+          subject: q.subject
+        }))
+      };
+
+      const testResultsRef = collection(db, 'testResults');
+      await addDoc(testResultsRef, testResult);
       console.log('Test results saved successfully');
     } catch (error) {
       console.error('Error storing test results:', error);
@@ -340,9 +427,8 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
         return;
       }
 
-      const results = {
+      const results: TestResults = {
         userId: user.uid,
-        userEmail: user.email,
         testName,
         totalQuestions: questions.length,
         attemptedQuestions: Object.keys(selectedAnswers).length,
@@ -350,13 +436,13 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
         incorrectAnswers: 0,
         score: 0,
         timeSpent: timeInMinutes * 60 - timeLeft,
-        timestamp: serverTimestamp(),
-        subjectWiseAnalysis: {} as any,
-        questions: [] as any[],
+        timestamp: new Date(),
+        subjectWiseAnalysis: {} as Record<string, SubjectAnalysis>,
+        questions: [],
       };
 
       // Initialize subject-wise analysis
-      const subjectAnalysis: { [key: string]: any } = {};
+      const subjectAnalysis: Record<string, SubjectAnalysis> = {};
       Object.keys(subjectMapping).forEach(subjectId => {
         const subject = subjectMapping[subjectId as keyof typeof subjectMapping];
         subjectAnalysis[subject] = {
@@ -402,14 +488,22 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
         subjectAnalysis[subject].score += score;
         results.score += score;
 
+        const selectedOptionText = selectedOption
+          ? (question.options.find(opt => opt.id === selectedOption)?.text ?? null)
+          : null;
+        
+        if (!correctOption) {
+          console.error('No correct option found for question:', question._id);
+          return;
+        }
+
         results.questions.push({
           question: question.question,
-          selectedOption: selectedOption ? question.options.find(
-            opt => opt.id === selectedOption
-          )?.text : null,
-          correctOption: correctOption?.text,
+          selectedOption: selectedOptionText,
+          correctOption: correctOption.text,
           score,
-          subject
+          subject,
+          isCorrect
         });
       });
 
@@ -425,6 +519,8 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
     }
   };
 
+  const filteredSubjects = selectedSubjects.map(s => s.toLowerCase());
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -437,7 +533,7 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
     <MathJaxContext config={mathJaxConfig}>
       <div className="flex flex-col h-full bg-[#1a1b2e] text-white">
         {showResults ? (
-          <TestResults results={testResults} onClose={handleCloseResults} />
+          <TestResults results={testResults!} onClose={handleCloseResults} />
         ) : (
           <>
             {/* Top Bar */}
@@ -454,17 +550,67 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
                 </div>
               </div>
               <button 
-                onClick={() => handleTestComplete()}
+                onClick={() => setShowConfirmDialog(true)}
                 className="px-4 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-medium"
               >
-                Submit
+                Submit Test
               </button>
+
+              {/* Custom Confirmation Dialog */}
+              {showConfirmDialog && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-[#1a1b2e] p-6 rounded-lg max-w-md w-full mx-4 border border-gray-700">
+                    <h3 className="text-xl font-semibold mb-4">Confirm Test Submission</h3>
+                    
+                    <div className="space-y-3 mb-6">
+                      <p className="text-gray-300">Are you sure you want to submit the test?</p>
+                      
+                      <div className="bg-[#232438] p-4 rounded-lg space-y-2">
+                        <div className="flex justify-between">
+                          <span>Total Questions:</span>
+                          <span className="font-semibold">{questions.length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Attempted:</span>
+                          <span className="font-semibold text-green-400">{Object.keys(selectedAnswers).length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Unattempted:</span>
+                          <span className="font-semibold text-yellow-400">{questions.length - Object.keys(selectedAnswers).length}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                      <button
+                        onClick={() => setShowConfirmDialog(false)}
+                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowConfirmDialog(false);
+                          handleTestComplete();
+                        }}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg"
+                      >
+                        Submit
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Subject Tabs */}
             <div className="flex gap-4 px-4 py-2 bg-[#1a1b2e] border-b border-gray-800">
-              {Object.keys(subjectMapping).map(subjectId => {
-                const subject = subjectMapping[subjectId as keyof typeof subjectMapping];
+              {filteredSubjects.map(subject => {
+                const questionsCount = questions.filter(q => {
+                  const subjectId = q.subjects[0];
+                  return subjectMapping[subjectId as keyof typeof subjectMapping] === subject;
+                }).length;
+                
                 return (
                   <button
                     key={subject}
@@ -478,6 +624,9 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
                         : 'text-gray-400 hover:text-white'}`}
                   >
                     {subject.charAt(0).toUpperCase() + subject.slice(1)}
+                    <span className="ml-2 text-xs bg-gray-700 px-2 py-0.5 rounded-full">
+                      {questionsCount}
+                    </span>
                   </button>
                 );
               })}
@@ -513,27 +662,50 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
                     </div>
 
                     {/* Options */}
-                    <div className="grid grid-cols-1 gap-3">
-                      {currentQuestion.options.map((option) => (
-                        <button
-                          key={option.id}
-                          onClick={() => handleAnswerSelect(currentQuestion._id, option.id)}
-                          className={`p-4 rounded-xl text-left transition-all w-full border-2 ${
-                            selectedAnswers[currentQuestion._id] === option.id
-                              ? 'bg-indigo-500 border-indigo-500 text-white'
-                              : 'bg-[#232438] border-transparent text-gray-300 hover:border-gray-700'
-                          }`}
-                        >
-                          {renderContent(option.text)}
-                          {option.image && (
-                            <img
-                              src={option.image}
-                              alt="Option"
-                              className="mt-2 rounded-lg max-w-full h-auto"
-                            />
-                          )}
-                        </button>
-                      ))}
+                    <div className="space-y-4">
+                      <div className="flex justify-end">
+                        {selectedAnswers[currentQuestion._id] && (
+                          <button
+                            onClick={() => {
+                              const newAnswers = { ...selectedAnswers };
+                              delete newAnswers[currentQuestion._id];
+                              setSelectedAnswers(newAnswers);
+                            }}
+                            className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center gap-1"
+                          >
+                            <X className="w-4 h-4" />
+                            Clear Response
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 gap-3">
+                        {currentQuestion.options.map((option) => (
+                          <div
+                            key={option.id}
+                            onClick={() => {
+                              // Just update the temporary selection
+                              setSelectedAnswers(prev => ({
+                                ...prev,
+                                [currentQuestion._id]: option.id
+                              }));
+                            }}
+                            className={`p-4 rounded-xl text-left transition-all w-full border-2 cursor-pointer ${
+                              selectedAnswers[currentQuestion._id] === option.id
+                                ? 'bg-indigo-500 border-indigo-500 text-white'
+                                : 'bg-[#232438] border-transparent text-gray-300 hover:border-gray-700'
+                            }`}
+                          >
+                            {renderContent(option.text)}
+                            {option.image && (
+                              <img
+                                src={option.image}
+                                alt="Option"
+                                className="mt-2 rounded-lg max-w-full h-auto"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -601,24 +773,27 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
                 Previous
               </button>
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-4">
                 <button
                   onClick={handleMarkForReview}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg"
+                  className={`px-4 py-2 rounded-lg ${markedForReview.has(currentQuestionIndex) ? 'bg-yellow-500 text-white' : 'text-yellow-500 border border-yellow-500'}`}
                 >
-                  <Flag className="w-4 h-4" />
-                  Mark for Review & Next
+                  {markedForReview.has(currentQuestionIndex) ? 'Marked for Review' : 'Mark for Review'}
                 </button>
-                
+
                 <button
                   onClick={() => {
-                    if (selectedAnswers[currentQuestion._id] && currentQuestionIndex < filteredQuestions.length - 1) {
-                      setCurrentQuestionIndex(prev => prev + 1);
+                    if (selectedAnswers[currentQuestion._id]) {
+                      handleAnswerSelect(currentQuestion._id, selectedAnswers[currentQuestion._id]);
+                      if (currentQuestionIndex < filteredQuestions.length - 1) {
+                        setCurrentQuestionIndex(prev => prev + 1);
+                      }
                     }
                   }}
-                  className="px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100"
+                  className={`px-4 py-2 text-white rounded-lg flex items-center gap-2 ${selectedAnswers[currentQuestion._id] ? 'bg-indigo-500 hover:bg-indigo-600' : 'bg-gray-500'}`}
                 >
-                  Save & Next
+                  {currentQuestionIndex === filteredQuestions.length - 1 ? 'Save & Finish' : 'Save & Next'}
+                  <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
             </div>

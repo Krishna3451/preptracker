@@ -43,6 +43,7 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
   const [expandedSubjects, setExpandedSubjects] = useState<string[]>([]);
   const [showTest, setShowTest] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const subjects: Subject[] = [
     { id: 'viQ2R4q7DVRyhecVTrSg', name: 'Physics' },
@@ -153,26 +154,49 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
     );
   };
 
+  const handleSelectAllChapters = (subjectName: string) => {
+    const subjectChapters = chapters[subjectName] || [];
+    const allChapterIds = subjectChapters.map(chapter => chapter.id);
+    
+    // Check if all chapters are already selected
+    const areAllSelected = allChapterIds.every(id => selectedChapters.includes(id));
+    
+    if (areAllSelected) {
+      // Deselect all chapters for this subject
+      setSelectedChapters(prev => 
+        prev.filter(id => !allChapterIds.includes(id))
+      );
+    } else {
+      // Select all chapters for this subject
+      setSelectedChapters(prev => {
+        const otherChapters = prev.filter(id => !allChapterIds.includes(id));
+        return [...otherChapters, ...allChapterIds];
+      });
+    }
+  };
+
   const resetState = () => {
     setStep(1);
     setTestName('');
     setSelectedSubjects([]);
-    setQuestionCount({ physics: 10, chemistry: 10, biology: 10 });
-    setTimeInMinutes(60);
+    setQuestionCount({}); // Start with empty question count
+    setTimeInMinutes(30); // Will be recalculated based on questions when needed
     setSelectedChapters([]);
     setExpandedSubjects([]);
     setShowTest(false);
   };
 
   const handleClose = () => {
-    onClose();
     resetState();
+    onClose();
   };
 
   const handleNext = () => {
     if (step < 6) {
       if (step === 2) {
-        setTimeInMinutes(60);
+        // Set initial time based on total questions when moving to time selection step
+        const baseTime = calculateBaseTime();
+        setTimeInMinutes(baseTime);
       }
       setStep(step + 1);
     }
@@ -183,11 +207,35 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
   };
 
   const handleSubjectToggle = (subjectName: string) => {
-    setSelectedSubjects(prev =>
-      prev.includes(subjectName)
+    setSelectedSubjects(prev => {
+      const newSubjects = prev.includes(subjectName)
         ? prev.filter(s => s !== subjectName)
-        : [...prev, subjectName]
-    );
+        : [...prev, subjectName];
+
+      // Update question count when toggling subjects
+      setQuestionCount(prevCount => {
+        const newCount = { ...prevCount };
+        if (!prev.includes(subjectName)) {
+          // Adding a subject - initialize with 10 questions
+          newCount[subjectName.toLowerCase()] = 10;
+        } else {
+          // Removing a subject - remove its count
+          delete newCount[subjectName.toLowerCase()];
+        }
+        return newCount;
+      });
+
+      // Clear selected chapters for removed subject
+      if (prev.includes(subjectName)) {
+        const subjectChapters = chapters[subjectName] || [];
+        const chapterIds = subjectChapters.map(chapter => chapter.id);
+        setSelectedChapters(prevChapters => 
+          prevChapters.filter(id => !chapterIds.includes(id))
+        );
+      }
+
+      return newSubjects;
+    });
   };
 
   const handleChapterSelect = (chapterId: string) => {
@@ -200,9 +248,19 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
     });
   };
 
+  // Calculate base time from total questions
+  const calculateBaseTime = (): number => {
+    return Object.values(questionCount).reduce((total, count) => total + count, 0);
+  };
+
+  // Handle time adjustment within ±10 minutes
   const handleTimeAdjustment = (adjustment: number) => {
+    const baseTime = calculateBaseTime();
     const newTime = timeInMinutes + adjustment;
-    if (newTime >= 0 && newTime <= 180) {
+    const minTime = Math.max(baseTime - 10, 0);
+    const maxTime = baseTime + 10;
+
+    if (newTime >= minTime && newTime <= maxTime) {
       setTimeInMinutes(newTime);
     }
   };
@@ -234,18 +292,47 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
   };
 
   const handleStartTest = () => {
+    // Create a clean question count object with only selected subjects
+    const filteredQuestionCount = selectedSubjects.reduce((acc, subject) => {
+      acc[subject.toLowerCase()] = questionCount[subject.toLowerCase()] || 0;
+      return acc;
+    }, {} as { [key: string]: number });
+
     const config: TestConfig = {
       testName,
       selectedSubjects,
-      questionCount,
+      questionCount: filteredQuestionCount,
       timeInMinutes,
       selectedChapters
     };
     console.log('Starting test with config:', config);
-    setShowTest(true);
+    
+    // Start countdown timer
+    setCountdown(3);
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === 1) {
+          clearInterval(timer);
+          setShowTest(true);
+          return null;
+        }
+        return prev ? prev - 1 : null;
+      });
+    }, 1000);
   };
 
   if (!isOpen) return null;
+
+  if (countdown !== null && !showTest) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-[#1a1b2e] p-8 rounded-lg text-center space-y-4 border border-gray-700">
+          <h3 className="text-xl font-semibold text-white">Keep your pen and paper ready!</h3>
+          <div className="text-6xl font-bold text-indigo-500">{countdown}</div>
+        </div>
+      </div>
+    );
+  }
 
   if (showTest) {
     return (
@@ -256,7 +343,9 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
             selectedChapters={selectedChapters}
             questionCount={questionCount}
             timeInMinutes={timeInMinutes}
+            selectedSubjects={selectedSubjects}
             onComplete={() => {
+              resetState();
               setShowTest(false);
               onClose();
             }}
@@ -318,16 +407,16 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
             <div>
               <h3 className="text-xl font-semibold mb-4">Questions per Subject</h3>
               <div className="grid gap-4">
-                {['physics', 'chemistry', 'biology'].map(subject => (
-                  <div key={subject} className="flex items-center gap-4">
+                {selectedSubjects.map(subject => (
+                  <div key={subject.toLowerCase()} className="flex items-center gap-4">
                     <label className="text-gray-300 w-24 capitalize">{subject}</label>
                     <input
                       type="number"
                       min="0"
-                      value={questionCount[subject]}
+                      value={questionCount[subject.toLowerCase()]}
                       onChange={(e) => setQuestionCount(prev => ({
                         ...prev,
-                        [subject]: parseInt(e.target.value) || 0
+                        [subject.toLowerCase()]: parseInt(e.target.value) || 0
                       }))}
                       className="bg-gray-800 text-white px-3 py-2 rounded-lg w-24"
                     />
@@ -340,24 +429,49 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
           {step === 3 && (
             <div>
               <h3 className="text-xl font-semibold mb-4">Time Duration</h3>
-              <div className="flex items-center justify-center space-x-4">
-                <button
-                  onClick={() => handleTimeAdjustment(-1)}
-                  className="p-2 rounded-full hover:bg-gray-100"
-                >
-                  <ChevronLeft size={24} />
-                </button>
-                <div className="flex items-center">
-                  <Clock className="mr-2" size={24} />
-                  <span className="text-2xl font-bold">{timeInMinutes}</span>
-                  <span className="ml-2">minutes</span>
+              <div className="space-y-6">
+                <div className="text-center">
+                  <div className="text-gray-600 mb-2">
+                    Base time: {calculateBaseTime()} minutes
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    (1 minute per question)
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleTimeAdjustment(1)}
-                  className="p-2 rounded-full hover:bg-gray-100"
-                >
-                  <ChevronRight size={24} />
-                </button>
+
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <div className="flex items-center justify-center space-x-6">
+                    <button
+                      onClick={() => handleTimeAdjustment(-1)}
+                      className="p-2 rounded-full hover:bg-gray-100 disabled:hover:bg-white"
+                      disabled={timeInMinutes <= calculateBaseTime() - 10}
+                    >
+                      <ChevronLeft size={24} className={timeInMinutes <= calculateBaseTime() - 10 ? 'text-gray-300' : ''} />
+                    </button>
+
+                    <div className="flex items-center">
+                      <Clock className="mr-3 text-blue-600" size={24} />
+                      <span className="text-3xl font-bold text-gray-800">{timeInMinutes}</span>
+                      <span className="ml-2 text-gray-600">minutes</span>
+                    </div>
+
+                    <button
+                      onClick={() => handleTimeAdjustment(1)}
+                      className="p-2 rounded-full hover:bg-gray-100 disabled:hover:bg-white"
+                      disabled={timeInMinutes >= calculateBaseTime() + 10}
+                    >
+                      <ChevronRight size={24} className={timeInMinutes >= calculateBaseTime() + 10 ? 'text-gray-300' : ''} />
+                    </button>
+                  </div>
+
+                  <div className="text-sm text-gray-500">
+                    Time adjustment: {timeInMinutes - calculateBaseTime() > 0 ? '+' : ''}{timeInMinutes - calculateBaseTime()} minutes
+                  </div>
+                </div>
+
+                <div className="text-center text-sm text-gray-500">
+                  You can adjust the time by ±10 minutes
+                </div>
               </div>
             </div>
           )}
@@ -368,19 +482,29 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
               <div className="space-y-4 max-h-[400px] overflow-y-auto">
                 {selectedSubjects.map((subjectName) => (
                   <div key={subjectName} className="border rounded-lg p-4">
-                    <button
-                      onClick={() => toggleSubjectExpansion(subjectName)}
-                      className="w-full flex justify-between items-center"
-                    >
-                      <span className="font-semibold">{subjectName}</span>
-                      <ChevronRight
-                        className={`transform transition-transform ${
-                          expandedSubjects.includes(subjectName) ? 'rotate-90' : ''
-                        }`}
-                      />
-                    </button>
+                    <div className="flex justify-between items-center mb-2">
+                      <button
+                        onClick={() => toggleSubjectExpansion(subjectName)}
+                        className="flex items-center space-x-2"
+                      >
+                        <ChevronRight
+                          className={`transform transition-transform ${
+                            expandedSubjects.includes(subjectName) ? 'rotate-90' : ''
+                          }`}
+                        />
+                        <span className="font-semibold">{subjectName}</span>
+                      </button>
+                      <button
+                        onClick={() => handleSelectAllChapters(subjectName)}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        {chapters[subjectName]?.every(chapter => 
+                          selectedChapters.includes(chapter.id)
+                        ) ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </div>
                     {expandedSubjects.includes(subjectName) && (
-                      <div className="mt-2 space-y-2">
+                      <div className="mt-2 space-y-2 pl-6">
                         {chapters[subjectName]?.map((chapter) => (
                           <div key={chapter.id} className="flex items-center">
                             <input
