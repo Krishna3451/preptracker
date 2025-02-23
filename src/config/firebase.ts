@@ -15,11 +15,32 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
-
-// Enable persistent auth state
-setPersistence(auth, browserLocalPersistence)
-  .catch((error) => {
-    console.error('Error setting auth persistence:', error);
-  });
-
 export const storage = getStorage(app);
+
+// Initialize Firebase with persistence
+const initializeFirebase = async () => {
+  try {
+    // Set persistence to LOCAL (survives browser restarts)
+    await setPersistence(auth, browserLocalPersistence);
+    
+    // Force refresh the token to ensure it's valid
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      await currentUser.getIdToken(true);
+    }
+
+    // Initialize auth state listener
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        // Refresh token on auth state change
+        await user.getIdToken(true);
+        console.log('User authenticated and token refreshed');
+      }
+    });
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+  }
+};
+
+// Call initialize function
+initializeFirebase();

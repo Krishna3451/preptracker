@@ -29,10 +29,7 @@ const Dashboard = () => {
     navigate('/');
   };
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const savedTasks = localStorage.getItem('preptrack_tasks');
-    return savedTasks ? JSON.parse(savedTasks) : [];
-  });
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   const getCurrentDayTasks = () => {
     const today = format(new Date(), 'yyyy-MM-dd');

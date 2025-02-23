@@ -27,6 +27,8 @@ export const getUserTasks = async (userId: string): Promise<Task[]> => {
 export const updateTask = async (taskId: string, updates: Partial<Task>) => {
   const taskRef = doc(db, TASKS_COLLECTION, taskId);
   await updateDoc(taskRef, updates);
+  const updatedDoc = await getDoc(taskRef);
+  return { id: updatedDoc.id, ...updatedDoc.data() } as Task;
 };
 
 export const deleteTask = async (taskId: string) => {

@@ -74,22 +74,30 @@ const TaskCalendar: React.FC<TaskCalendarProps> = ({ onDateSelect, onTasksChange
     if (!currentTask.title || !currentTask.date || !user?.uid) return;
 
     try {
+      let updatedTasksList;
       if (isEditing && currentTask.id) {
-        await updateTask(currentTask.id, currentTask);
-        const updatedTasks = tasks.map(task =>
-          task.id === currentTask.id ? { ...currentTask as Task } : task
+        const updatedTask = await updateTask(currentTask.id, currentTask);
+        updatedTasksList = tasks.map(task =>
+          task.id === currentTask.id ? updatedTask : task
         );
-        setTasks(updatedTasks);
       } else {
         const newTask = await addTask(user.uid, {
           title: currentTask.title,
           date: currentTask.date,
           description: currentTask.description || ''
         });
-        setTasks([...tasks, newTask]);
+        updatedTasksList = [...tasks, newTask];
       }
+      
+      setTasks(updatedTasksList);
+      onTasksChange?.(updatedTasksList);
       setIsModalOpen(false);
       setCurrentTask({});
+
+      // Fetch all tasks to ensure sync
+      const allTasks = await getUserTasks(user.uid);
+      setTasks(allTasks);
+      onTasksChange?.(allTasks);
     } catch (error) {
       console.error('Error saving task:', error);
     }
@@ -100,8 +108,16 @@ const TaskCalendar: React.FC<TaskCalendarProps> = ({ onDateSelect, onTasksChange
       await deleteTask(id);
       const newTasks = tasks.filter(task => task.id !== id);
       setTasks(newTasks);
+      onTasksChange?.(newTasks); // Notify parent component of the change
       setIsModalOpen(false);
       setCurrentTask({});
+      
+      // Fetch all tasks to ensure sync
+      if (user?.uid) {
+        const allTasks = await getUserTasks(user.uid);
+        setTasks(allTasks);
+        onTasksChange?.(allTasks);
+      }
     } catch (error) {
       console.error('Error deleting task:', error);
     }
