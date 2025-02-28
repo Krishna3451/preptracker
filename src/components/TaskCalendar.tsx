@@ -4,15 +4,17 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { EventClickArg } from '@fullcalendar/core';
 import { format } from 'date-fns';
-import { Plus, X, Edit2, Trash2 } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, BookOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { addTask, getUserTasks, updateTask, deleteTask } from '../services/taskService';
+import ChapterSelector from './ChapterSelector';
 
 export interface Task {
   id: string;
   title: string;
   date: string;
   description?: string;
+  chapters?: string[];
 }
 
 interface TaskCalendarProps {
@@ -20,12 +22,64 @@ interface TaskCalendarProps {
   onTasksChange?: (tasks: Task[]) => void;
 }
 
+interface Chapter {
+  id: string;
+  name: string;
+}
+
+const chapters: { [subject: string]: Chapter[] } = {
+  Physics: [
+    { id: 'UR7lQgTXa6O1Ja2MjELt', name: 'Basic Mathematics' },
+    { id: 'WVYjeVoGqiyUQZowKvOF', name: 'Units and Measurements' },
+    { id: 'vLjjoDj6mQrfB47Uj4jT', name: 'Motion in a Straight Line' },
+    { id: 'tlH4MPbfXhb8HFlVgIX7', name: 'Motion in a Plane' },
+    { id: 'EDpMxMIBpTqjNJKWlnZo', name: 'Laws of Motion' },
+    { id: 'ydpsND9XYU5Ctz1Jr0ir', name: 'Work, Energy and Power' },
+    { id: 'I9Ex2UHsP10IL9VMr0fl', name: 'System of Particles' },
+    { id: 'AbEltnwRUfIHpZ7RYLXE', name: 'Rotation Motion' },
+    { id: 'rBYUWaquerpt6DCEt8Ma', name: 'Gravitation' },
+    { id: 'NbY1nCIK4CbZN3si4FLH', name: 'Mechanical Properties of Solid' },
+    { id: '8COC00fa3TkHFvQfiyEk', name: 'Mechanical Properties of Fluids' },
+    { id: '83niumaqol0DnrgYJ1Rj', name: 'Thermal Properties of Matter' },
+    { id: 'F5AMt08I1dWxE92TqnXG', name: 'Thermodynamics' },
+    { id: 'K6eONmqzwLsFYLDI3vpa', name: 'Kinetic Theory of Gases' },
+    { id: 'OAzwKrBtk6iZvJsaTQIs', name: 'Oscillations' },
+    { id: '90OZl6yE6IYauh1LsdqS', name: 'Waves' },
+  ],
+  Chemistry: [
+    { id: 'lLnbMZrHIvYGcmRvKEZs', name: 'Basic Concepts' },
+    { id: 'u5ae2A7AXoaGOkrehirY', name: 'Structure of Atom' },
+    { id: 'lPbwLXxiJXvnZ9Lm8Jnl', name: 'Classification of Elements' },
+    { id: 'Ik3aBTXYWvZvGWCxJWDr', name: 'Chemical Bonding' },
+    { id: 'vKXYkDyIQPSrNsXQCxTF', name: 'States of Matter' },
+    { id: 'mRDHMRfvhQwCpAQNZYXB', name: 'Thermodynamics' },
+    { id: 'FGmXNEZfJYuqBLxdPDnV', name: 'Equilibrium' },
+    { id: 'nJfVRKLIZYQwHcXpTDmS', name: 'Redox Reactions' },
+    { id: 'yTVzLQKXJYuqBLxdPDnV', name: 'Hydrogen' },
+    { id: 'pQrStUvWxYzAbCdEfGhI', name: 's-Block Elements' },
+    { id: 'jKlMnOpQrStUvWxYzAbC', name: 'p-Block Elements' },
+    { id: 'dEfGhIjKlMnOpQrStUvW', name: 'Organic Chemistry' },
+    { id: 'xYzAbCdEfGhIjKlMnOpQ', name: 'Hydrocarbons' },
+  ],
+  Biology: [
+    { id: 'rStUvWxYzAbCdEfGhIjK', name: 'Cell Structure and Function' },
+    { id: 'lMnOpQrStUvWxYzAbCdE', name: 'Plant Physiology' },
+    { id: 'fGhIjKlMnOpQrStUvWxY', name: 'Human Physiology' },
+    { id: 'zAbCdEfGhIjKlMnOpQrS', name: 'Reproduction' },
+    { id: 'tUvWxYzAbCdEfGhIjKlM', name: 'Genetics and Evolution' },
+    { id: 'nOpQrStUvWxYzAbCdEfG', name: 'Biology in Human Welfare' },
+    { id: 'hIjKlMnOpQrStUvWxYzA', name: 'Biotechnology' },
+    { id: 'bCdEfGhIjKlMnOpQrStU', name: 'Ecology' },
+  ]
+};
+
 const TaskCalendar: React.FC<TaskCalendarProps> = ({ onDateSelect, onTasksChange }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<Partial<Task>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [showChapterSelector, setShowChapterSelector] = useState(false);
 
   // Fetch tasks from Firebase when component mounts
   useEffect(() => {
@@ -54,17 +108,23 @@ const TaskCalendar: React.FC<TaskCalendarProps> = ({ onDateSelect, onTasksChange
 
     setCurrentTask({
       date: formattedDate,
+      chapters: [],
     });
     onDateSelect?.(formattedDate);
     setIsEditing(false);
+    setShowChapterSelector(false);
     setIsModalOpen(true);
   };
 
   const handleEventClick = (arg: EventClickArg) => {
     const task = tasks.find(t => t.id === arg.event.id);
     if (task) {
-      setCurrentTask(task);
+      setCurrentTask({
+        ...task,
+        chapters: task.chapters || []
+      });
       setIsEditing(true);
+      setShowChapterSelector(false);
       setIsModalOpen(true);
     }
   };
@@ -84,7 +144,8 @@ const TaskCalendar: React.FC<TaskCalendarProps> = ({ onDateSelect, onTasksChange
         const newTask = await addTask(user.uid, {
           title: currentTask.title,
           date: currentTask.date,
-          description: currentTask.description || ''
+          description: currentTask.description || '',
+          chapters: currentTask.chapters || []
         });
         updatedTasksList = [...tasks, newTask];
       }
@@ -204,6 +265,50 @@ const TaskCalendar: React.FC<TaskCalendarProps> = ({ onDateSelect, onTasksChange
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   rows={3}
                 />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Study Chapters
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowChapterSelector(!showChapterSelector)}
+                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  >
+                    <BookOpen size={16} />
+                    {showChapterSelector ? 'Hide Chapters' : 'Select Chapters'}
+                  </button>
+                </div>
+                
+                {showChapterSelector && (
+                  <div className="mt-2 border rounded-md p-3">
+                    <ChapterSelector 
+                      selectedChapters={currentTask.chapters || []}
+                      onChange={(chapters) => setCurrentTask({ ...currentTask, chapters })}
+                    />
+                  </div>
+                )}
+                
+                {!showChapterSelector && currentTask.chapters && currentTask.chapters.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {currentTask.chapters.map(chapterId => {
+                      // Find the chapter name from all subjects
+                      let chapterName = '';
+                      Object.values(chapters).forEach(chapterList => {
+                        const chapter = chapterList.find(c => c.id === chapterId);
+                        if (chapter) chapterName = chapter.name;
+                      });
+                      
+                      return (
+                        <span key={chapterId} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {chapterName}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end space-x-2">

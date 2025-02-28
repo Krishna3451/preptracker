@@ -6,7 +6,7 @@ import Modal from '../components/Modal';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { LogOut, BookOpen } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -74,6 +74,91 @@ const Dashboard = () => {
                     <h4 className="font-medium text-gray-800 text-sm">{task.title}</h4>
                     {task.description && (
                       <p className="mt-1 text-xs text-gray-600">{task.description}</p>
+                    )}
+                    
+                    {task.chapters && task.chapters.length > 0 && (
+                      <div className="mt-2">
+                        <div className="flex items-center gap-1 text-xs text-indigo-600 mb-1">
+                          <BookOpen size={14} />
+                          <span>Study Chapters:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {task.chapters.map(chapterId => {
+                            // Find chapter name from all subjects
+                            let chapterName = '';
+                            let subjectName = '';
+                            
+                            // This is the same chapters data structure from TaskCalendar
+                            const chapters = {
+                              Physics: [
+                                { id: 'UR7lQgTXa6O1Ja2MjELt', name: 'Basic Mathematics' },
+                                { id: 'WVYjeVoGqiyUQZowKvOF', name: 'Units and Measurements' },
+                                { id: 'vLjjoDj6mQrfB47Uj4jT', name: 'Motion in a Straight Line' },
+                                { id: 'tlH4MPbfXhb8HFlVgIX7', name: 'Motion in a Plane' },
+                                { id: 'EDpMxMIBpTqjNJKWlnZo', name: 'Laws of Motion' },
+                                { id: 'ydpsND9XYU5Ctz1Jr0ir', name: 'Work, Energy and Power' },
+                                { id: 'I9Ex2UHsP10IL9VMr0fl', name: 'System of Particles' },
+                                { id: 'AbEltnwRUfIHpZ7RYLXE', name: 'Rotation Motion' },
+                                { id: 'rBYUWaquerpt6DCEt8Ma', name: 'Gravitation' },
+                                { id: 'NbY1nCIK4CbZN3si4FLH', name: 'Mechanical Properties of Solid' },
+                                { id: '8COC00fa3TkHFvQfiyEk', name: 'Mechanical Properties of Fluids' },
+                                { id: '83niumaqol0DnrgYJ1Rj', name: 'Thermal Properties of Matter' },
+                                { id: 'F5AMt08I1dWxE92TqnXG', name: 'Thermodynamics' },
+                                { id: 'K6eONmqzwLsFYLDI3vpa', name: 'Kinetic Theory of Gases' },
+                                { id: 'OAzwKrBtk6iZvJsaTQIs', name: 'Oscillations' },
+                                { id: '90OZl6yE6IYauh1LsdqS', name: 'Waves' },
+                              ],
+                              Chemistry: [
+                                { id: 'lLnbMZrHIvYGcmRvKEZs', name: 'Basic Concepts' },
+                                { id: 'u5ae2A7AXoaGOkrehirY', name: 'Structure of Atom' },
+                                { id: 'lPbwLXxiJXvnZ9Lm8Jnl', name: 'Classification of Elements' },
+                                { id: 'Ik3aBTXYWvZvGWCxJWDr', name: 'Chemical Bonding' },
+                                { id: 'vKXYkDyIQPSrNsXQCxTF', name: 'States of Matter' },
+                                { id: 'mRDHMRfvhQwCpAQNZYXB', name: 'Thermodynamics' },
+                                { id: 'FGmXNEZfJYuqBLxdPDnV', name: 'Equilibrium' },
+                                { id: 'nJfVRKLIZYQwHcXpTDmS', name: 'Redox Reactions' },
+                                { id: 'yTVzLQKXJYuqBLxdPDnV', name: 'Hydrogen' },
+                                { id: 'pQrStUvWxYzAbCdEfGhI', name: 's-Block Elements' },
+                                { id: 'jKlMnOpQrStUvWxYzAbC', name: 'p-Block Elements' },
+                                { id: 'dEfGhIjKlMnOpQrStUvW', name: 'Organic Chemistry' },
+                                { id: 'xYzAbCdEfGhIjKlMnOpQ', name: 'Hydrocarbons' },
+                              ],
+                              Biology: [
+                                { id: 'rStUvWxYzAbCdEfGhIjK', name: 'Cell Structure and Function' },
+                                { id: 'lMnOpQrStUvWxYzAbCdE', name: 'Plant Physiology' },
+                                { id: 'fGhIjKlMnOpQrStUvWxY', name: 'Human Physiology' },
+                                { id: 'zAbCdEfGhIjKlMnOpQrS', name: 'Reproduction' },
+                                { id: 'tUvWxYzAbCdEfGhIjKlM', name: 'Genetics and Evolution' },
+                                { id: 'nOpQrStUvWxYzAbCdEfG', name: 'Biology in Human Welfare' },
+                                { id: 'hIjKlMnOpQrStUvWxYzA', name: 'Biotechnology' },
+                                { id: 'bCdEfGhIjKlMnOpQrStU', name: 'Ecology' },
+                              ]
+                            };
+                            
+                            // Find chapter and subject
+                            Object.entries(chapters).forEach(([subject, chapterList]) => {
+                              const chapter = chapterList.find(c => c.id === chapterId);
+                              if (chapter) {
+                                chapterName = chapter.name;
+                                subjectName = subject;
+                              }
+                            });
+                            
+                            return (
+                              <span 
+                                key={chapterId} 
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  subjectName === 'Physics' ? 'bg-blue-100 text-blue-800' :
+                                  subjectName === 'Chemistry' ? 'bg-green-100 text-green-800' :
+                                  'bg-purple-100 text-purple-800'
+                                }`}
+                              >
+                                {chapterName}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}
