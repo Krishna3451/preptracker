@@ -1,14 +1,33 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, BookOpen, Target, Trophy } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { ArrowRight, BookOpen, Target, Trophy, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useState } from 'react';
 
 const Landing = () => {
-  const { signInWithGoogle } = useAuth();
+  const { user, signInWithGoogle, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (user && !loading) {
+      // Get the intended destination from location state, or default to dashboard
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
+    }
+  }, [user, loading, navigate, location]);
 
   const handleGetStarted = async () => {
-    await signInWithGoogle();
-    navigate('/dashboard');
+    try {
+      setIsSigningIn(true);
+      await signInWithGoogle();
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error during sign in:', error);
+    } finally {
+      setIsSigningIn(false);
+    }
   };
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -35,10 +54,20 @@ const Landing = () => {
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <button
                 onClick={handleGetStarted}
-                className="rounded-md bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 flex items-center"
+                disabled={isSigningIn || loading}
+                className="rounded-md bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 flex items-center disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Sign in with Google
-                <ArrowRight className="ml-2 inline-block h-5 w-5" />
+                {isSigningIn || loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign in with Google
+                    <ArrowRight className="ml-2 inline-block h-5 w-5" />
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -101,12 +130,20 @@ const Landing = () => {
             <p className="mt-4 text-lg text-gray-600">
               Join thousands of students achieving their goals with PrepTrack.
             </p>
-            <Link
-              to="/dashboard"
-              className="mt-8 inline-block rounded-md bg-indigo-600 px-8 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-500"
+            <button
+              onClick={handleGetStarted}
+              disabled={isSigningIn || loading}
+              className="mt-8 inline-block rounded-md bg-indigo-600 px-8 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Start Now
-            </Link>
+              {isSigningIn || loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 inline animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Start Now'
+              )}
+            </button>
           </div>
         </div>
       </section>

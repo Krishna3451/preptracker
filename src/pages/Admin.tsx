@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
-import { Plus, Trash2, Video, FileQuestion, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Video, FileQuestion, BookOpen, Shield, UserPlus, UserX } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface VideoData {
   id?: string;
@@ -33,7 +34,8 @@ interface Flashcard {
 }
 
 const Admin = () => {
-  const [activeTab, setActiveTab] = useState<'videos' | 'questions' | 'flashcards'>('videos');
+  const { user, isAdmin, isSuperAdmin, adminUsers, addAdminUser, removeAdminUser } = useAuth();
+  const [activeTab, setActiveTab] = useState<'admins' | 'videos' | 'questions' | 'flashcards'>('videos');
   const [error, setError] = useState<string | null>(null);
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [questions, setQuestions] = useState<CustomQuestion[]>([]);
@@ -66,11 +68,56 @@ const Admin = () => {
     answer: ''
   });
 
+  // Admin management state
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [adminSuccess, setAdminSuccess] = useState<string | null>(null);
+  const [isAddingAdmin, setIsAddingAdmin] = useState(false);
+
   useEffect(() => {
     fetchVideos();
     fetchQuestions();
     fetchFlashcards();
   }, []);
+
+  // Handle adding a new admin
+  const handleAddAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminError(null);
+    setAdminSuccess(null);
+    setIsAddingAdmin(true);
+
+    if (!newAdminEmail) {
+      setAdminError('Please enter an email address');
+      setIsAddingAdmin(false);
+      return;
+    }
+
+    try {
+      await addAdminUser(newAdminEmail);
+      setAdminSuccess(`Successfully added ${newAdminEmail} as admin`);
+      setNewAdminEmail('');
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : 'Error adding admin');
+    } finally {
+      setIsAddingAdmin(false);
+    }
+  };
+
+  // Handle removing an admin
+  const handleRemoveAdmin = async (uid: string, email: string) => {
+    if (window.confirm(`Are you sure you want to remove admin privileges from ${email}?`)) {
+      setAdminError(null);
+      setAdminSuccess(null);
+      
+      try {
+        await removeAdminUser(uid);
+        setAdminSuccess(`Successfully removed admin privileges from ${email}`);
+      } catch (error) {
+        setAdminError(error instanceof Error ? error.message : 'Error removing admin');
+      }
+    }
+  };
 
   const fetchVideos = async () => {
     try {
@@ -426,6 +473,112 @@ const Admin = () => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+      
+      {/* Admin Management Section (only visible to Super Admin) */}
+      {isSuperAdmin && (
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <Shield className="h-5 w-5 mr-2 text-indigo-600" />
+            Admin Access Management
+          </h2>
+          
+          {/* Super Admin Notice */}
+          <div className="bg-indigo-50 p-4 rounded-md mb-4">
+            <p className="text-indigo-800">You are logged in as the Super Admin ({user?.email}). You can add or remove other admins.</p>
+          </div>
+          
+          {/* Admin Error/Success Messages */}
+          {adminError && (
+            <div className="bg-red-50 p-4 rounded-md mb-4">
+              <p className="text-red-800">{adminError}</p>
+            </div>
+          )}
+          {adminSuccess && (
+            <div className="bg-green-50 p-4 rounded-md mb-4">
+              <p className="text-green-800">{adminSuccess}</p>
+            </div>
+          )}
+          
+          {/* Add Admin Form */}
+          <form onSubmit={handleAddAdmin} className="mb-6">
+            <div className="flex items-center">
+              <input
+                type="email"
+                value={newAdminEmail}
+                onChange={(e) => setNewAdminEmail(e.target.value)}
+                placeholder="Enter email address"
+                className="flex-1 p-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={isAddingAdmin}
+              />
+              <button
+                type="submit"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-r-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isAddingAdmin || !newAdminEmail}
+              >
+                {isAddingAdmin ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Admin
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+          
+          {/* Admin Users List */}
+          <div>
+            <h3 className="text-lg font-medium mb-2">Current Admins</h3>
+            {adminUsers.length === 0 ? (
+              <p className="text-gray-500 italic">No additional admins found.</p>
+            ) : (
+              <ul className="divide-y">
+                {adminUsers.map((admin) => (
+                  <li key={admin.uid} className="py-3 flex justify-between items-center">
+                    <div className="flex items-center">
+                      {admin.photoURL && (
+                        <img src={admin.photoURL} alt={admin.displayName || admin.email} className="h-8 w-8 rounded-full mr-3" />
+                      )}
+                      <div>
+                        <p className="font-medium">{admin.displayName || 'No Name'}</p>
+                        <p className="text-sm text-gray-500">{admin.email}</p>
+                      </div>
+                    </div>
+                    {admin.email !== 'goyalmayank300@gmail.com' && (
+                      <button
+                        onClick={() => handleRemoveAdmin(admin.uid, admin.email)}
+                        className="text-red-600 hover:text-red-800 focus:outline-none"
+                        title="Remove admin privileges"
+                      >
+                        <UserX className="h-5 w-5" />
+                      </button>
+                    )}
+                  </li>
+                ))}
+                {/* Always show the super admin */}
+                {!adminUsers.some(admin => admin.email === 'goyalmayank300@gmail.com') && (
+                  <li className="py-3 flex justify-between items-center">
+                    <div className="flex items-center">
+                      <div>
+                        <p className="font-medium">Super Admin</p>
+                        <p className="text-sm text-gray-500">goyalmayank300@gmail.com</p>
+                      </div>
+                    </div>
+                    <span className="text-indigo-600 text-sm font-medium">Super Admin</span>
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
       
       {/* Tab Navigation */}
       <div className="flex border-b border-gray-200 mb-6">
