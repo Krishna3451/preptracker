@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -15,6 +15,7 @@ import AdminRoute from './components/AdminRoute';
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isLandingPage = location.pathname === '/';
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (isLandingPage) {
     return children;
@@ -22,7 +23,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
       <main className="flex-1 p-8">
         {children}
       </main>

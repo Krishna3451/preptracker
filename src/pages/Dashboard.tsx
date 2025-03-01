@@ -6,7 +6,7 @@ import Modal from '../components/Modal';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, BookOpen } from 'lucide-react';
+import { LogOut, BookOpen, BarChart2, X } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -17,6 +17,16 @@ const Dashboard = () => {
       navigate('/');
     }
   }, [user, navigate]);
+  
+  // Handle window resize to show/hide calendar based on screen width
+  useEffect(() => {
+    const handleResize = () => {
+      setShowCalendar(window.innerWidth >= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -30,6 +40,7 @@ const Dashboard = () => {
   };
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [showCalendar, setShowCalendar] = useState<boolean>(window.innerWidth >= 768);
 
   const getCurrentDayTasks = () => {
     const today = format(new Date(), 'yyyy-MM-dd');
@@ -47,16 +58,27 @@ const Dashboard = () => {
         title="Confirm Logout"
         message="Are you sure you want to log out? You will need to sign in again to access your dashboard."
       />
-      <div className="flex justify-between items-start gap-8">
-        <div className="space-y-6 flex-1">
+      <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
+        <div className="space-y-6 flex-1 w-full">
           <h1 className="text-2xl font-bold text-gray-800">Hello Dr {user?.displayName?.split(' ')[0]}!</h1>
           <ExamCountdown />
-          <div className="bg-white p-6 rounded-xl shadow-sm">
+          <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm">
             <h2 className="text-sm font-semibold text-gray-800 mb-4">Study Flashcards</h2>
             <FlashCards />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm overflow-hidden w-[350px] shrink-0">
+        <div className="md:block">
+          {/* Calendar toggle for mobile */}
+          <div className="flex items-center justify-between mb-4 md:hidden">
+            <h2 className="text-sm font-semibold text-gray-800">Task Organizer</h2>
+            <button 
+              onClick={() => setShowCalendar(!showCalendar)} 
+              className="p-2 bg-indigo-100 rounded-full text-indigo-600"
+            >
+              {showCalendar ? <X className="w-5 h-5" /> : <BarChart2 className="w-5 h-5" />}
+            </button>
+          </div>
+          <div className={`bg-white p-4 rounded-xl shadow-sm overflow-hidden w-full lg:w-[350px] lg:shrink-0 ${!showCalendar && 'hidden md:block'}`}>
           <h2 className="text-sm font-semibold text-gray-800 mb-2">Task Organizer</h2>
           <TaskCalendar 
             onDateSelect={setSelectedDate}
@@ -107,31 +129,80 @@ const Dashboard = () => {
                                 { id: 'K6eONmqzwLsFYLDI3vpa', name: 'Kinetic Theory of Gases' },
                                 { id: 'OAzwKrBtk6iZvJsaTQIs', name: 'Oscillations' },
                                 { id: '90OZl6yE6IYauh1LsdqS', name: 'Waves' },
+                                { id: '8GPJNawvt6J5EEiXRA0G', name: 'Electrostatic' },
+                                { id: 'O7WgeGZ0n1zbxK7DvfFb', name: 'Capacitance' },
+                                { id: '9NksgfWD616fnwuZtWd4', name: 'Current Electricity' },
+                                { id: 'u5ae2A7AXoaGOkrehirY', name: 'Moving Charges & Magnetism' },
+                                { id: 'v6jSjiUaiqU8rp8qWq4f', name: 'Magnetism & Matter' },
+                                { id: 'poyyLhw7WnxziuwE72rA', name: 'EMI' },
+                                { id: 'psyWtKDbnjXZDpckZkdB', name: 'Alternating Current' },
+                                { id: 'aQjZB2HZQ8adp0OL8aDT', name: 'Electromagnetic Waves' },
+                                { id: 'H86iz5LOXXAo0BLbEZMX', name: 'Ray optics' },
+                                { id: 'XqPgHgya2AASoEY8IU2T', name: 'Wave Optics' },
+                                { id: '3DK05k4JZMvQcXXvXN7R', name: 'Dual Nature of Radiation and Matter' },
+                                { id: 'GFgznll08oV62N55b8KQ', name: 'Atoms' },
+                                { id: 'Tw7vLs2sI9raIZsarADj', name: 'Nuclei' },
+                                { id: 'OQt6gFATlMIP4F7xq5EI', name: 'Semiconductor' },
                               ],
                               Chemistry: [
-                                { id: 'lLnbMZrHIvYGcmRvKEZs', name: 'Basic Concepts' },
-                                { id: 'u5ae2A7AXoaGOkrehirY', name: 'Structure of Atom' },
-                                { id: 'lPbwLXxiJXvnZ9Lm8Jnl', name: 'Classification of Elements' },
-                                { id: 'Ik3aBTXYWvZvGWCxJWDr', name: 'Chemical Bonding' },
-                                { id: 'vKXYkDyIQPSrNsXQCxTF', name: 'States of Matter' },
-                                { id: 'mRDHMRfvhQwCpAQNZYXB', name: 'Thermodynamics' },
-                                { id: 'FGmXNEZfJYuqBLxdPDnV', name: 'Equilibrium' },
-                                { id: 'nJfVRKLIZYQwHcXpTDmS', name: 'Redox Reactions' },
-                                { id: 'yTVzLQKXJYuqBLxdPDnV', name: 'Hydrogen' },
-                                { id: 'pQrStUvWxYzAbCdEfGhI', name: 's-Block Elements' },
-                                { id: 'jKlMnOpQrStUvWxYzAbC', name: 'p-Block Elements' },
-                                { id: 'dEfGhIjKlMnOpQrStUvW', name: 'Organic Chemistry' },
-                                { id: 'xYzAbCdEfGhIjKlMnOpQ', name: 'Hydrocarbons' },
+                                { id: 'xp236Zm1X8uC6WXrMWJW', name: 'Some Basic Concept of Chemistry' },
+                                { id: 'd0rjAMP9aiL3eMtxvQzQ', name: 'Structure of Atom' },
+                                { id: '3FKKTzEf5lYYRGGYEKoi', name: 'Classification of Elements & Periodicity' },
+                                { id: 'bqGcfblgDyQs8oscZO7g', name: 'Chemical Bonding' },
+                                { id: 'F5AMt08I1dWxE92TqnXG', name: 'Thermodynamics' },
+                                { id: 'VC0b3PGLapQc6QZ8qMo0', name: 'Chemical Equilibrium' },
+                                { id: 'CooCc5yQerI0KJOK7DX5', name: 'Ionic Equilibrium' },
+                                { id: '3cJOSV0IYMWFkBLQTihq', name: 'Redox Reactions' },
+                                { id: 'dCo74VhvuxhqXj7ayziF', name: 'p-Block Elements (Group 13 & 14)' },
+                                { id: 'MRH5jPRVrNXEy5FWkkaj', name: 'Organic Chemistry: Some Basic Principles & Techniques' },
+                                { id: 'vSbMVoLsvnUiuUNxTHaR', name: 'Hydrocarbons' },
+                                { id: 'envWb3qkC4ZSFHF8x5YN', name: 'Solutions' },
+                                { id: 'si8YKtWiT0Nq4780HQ1N', name: 'Electrochemistry' },
+                                { id: 'wORHNOk9YwmcLxEwMJIh', name: 'Chemical Kinetics' },
+                                { id: 'BAOozKNPPKT8v5dLhQma', name: 'p-Block Elements (Group 15,16,17,18)' },
+                                { id: 'F47iI14w5fJ8UVL7QKMq', name: 'd & f-Block Elements' },
+                                { id: 'bgsgtrD9C3YuMrElRAaP', name: 'Coordination Compounds' },
+                                { id: 'jPKiMSmjeEBEqfJHHuaY', name: 'Haloalkanes & Haloarenes' },
+                                { id: 'Jq8IHcWNp20VpqqQ8MGX', name: 'Alcohol, Phenol and Ether' },
+                                { id: 'cjB9VYoFMuM7GOMDNgIw', name: 'Aldehyde and Ketone' },
+                                { id: 'RIpPEjHn3ya3XwhtRGpn', name: 'Carboxylic Acid' },
+                                { id: 'sUVlUbJq5FF2c7u78K3Z', name: 'Amines' },
+                                { id: '6E42pG1feBYmk8936TDC', name: 'Biomolecules' },
+                                { id: 'NoknBR1tsG2t2stGYakP', name: 'Practical Chemistry' },
                               ],
                               Biology: [
-                                { id: 'rStUvWxYzAbCdEfGhIjK', name: 'Cell Structure and Function' },
-                                { id: 'lMnOpQrStUvWxYzAbCdE', name: 'Plant Physiology' },
-                                { id: 'fGhIjKlMnOpQrStUvWxY', name: 'Human Physiology' },
-                                { id: 'zAbCdEfGhIjKlMnOpQrS', name: 'Reproduction' },
-                                { id: 'tUvWxYzAbCdEfGhIjKlM', name: 'Genetics and Evolution' },
-                                { id: 'nOpQrStUvWxYzAbCdEfG', name: 'Biology in Human Welfare' },
-                                { id: 'hIjKlMnOpQrStUvWxYzA', name: 'Biotechnology' },
-                                { id: 'bCdEfGhIjKlMnOpQrStU', name: 'Ecology' },
+                                { id: '2taW41LFt0iepzmSW5dp', name: 'Living World' },
+                                { id: 'RInpuxI8yZlg8g2CQH9X', name: 'Biological Classification' },
+                                { id: 'xGxozQxQlknr79HVMpGq', name: 'Plant Kingdom' },
+                                { id: 'HLdG8QOaLN6jRK0kOXmt', name: 'Animal Kingdom' },
+                                { id: '18RcKG0WUOpF55rOyfn7', name: 'Morphology of Flowering Plants' },
+                                { id: 'hmn6nkqRgOWMFxuMA0fS', name: 'Anatomy of Flowering Plants' },
+                                { id: 'xsEE3r0oTvTZzfNvxnsV', name: 'Structural Organisation in Animals' },
+                                { id: 'on82g6JZA6gQfYogXIXR', name: 'Cell-The Unit of Life' },
+                                { id: '6E42pG1feBYmk8936TDC', name: 'Biomolecules' },
+                                { id: 'fkEmKXIOCRDB89PvzopA', name: 'Cell Cycle and Cell Division' },
+                                { id: 'sEN9klIaHwBbFxQ1odjs', name: 'Photosynthesis in Higher Plants' },
+                                { id: 'JwLTiaSSAE9WthRWu0vc', name: 'Respiration in Plants' },
+                                { id: 'UCHVQ7o08VB9vhDaoQhI', name: 'Plant Growth and Development' },
+                                { id: '41GVciLXfTb8tKfsYxXh', name: 'Breathing and Exchange of Gases' },
+                                { id: 'mdec58C1K9X2nKjsnodN', name: 'Body Fluids and Circulation' },
+                                { id: 'mJQyqnE8btj9OrHh9wyb', name: 'Excretory Products & their elimination' },
+                                { id: 'fShWgidyOZXvUENEMb7U', name: 'Locomotion and movements' },
+                                { id: 'dlFtAub7vsdivPTaUEZj', name: 'Neural Control and Coordination' },
+                                { id: 'xOzlIjIojGfglNXnLfBE', name: 'Chemical Coordination and Integration' },
+                                { id: 'EFUPD6oXL5mE4tDhGZ2J', name: 'Sexual Reproduction in Flowering Plants' },
+                                { id: 'UAbIQlLL9LKKx5xUnSxF', name: 'Human Reproduction' },
+                                { id: '8esVgAR8o4Tf6421LStz', name: 'Reproductive Health' },
+                                { id: 'bmcMW1ZMZ3iC6YU2amuF', name: 'Principles of Inheritance and Variation' },
+                                { id: 'yA68zTMIXPhRxJXMOC6J', name: 'Molecular Basis of Inheritance' },
+                                { id: 'cpAtTxCze7elufykaYvT', name: 'Evolution' },
+                                { id: 'I7cWp8TOqh3e2TZVWKuS', name: 'Human Health & Diseases' },
+                                { id: '58TFiidI5Ebor6rRpg0B', name: 'Microbes in human Welfare' },
+                                { id: '3EKGIuOyZTntGvGqqbL8', name: 'Biotechnology-Principles and Processes' },
+                                { id: 'K83Fd7MZKbEWL1rOfTBG', name: 'Biotechnology and Its Application' },
+                                { id: '4J5ttWw9nBmts4KINYME', name: 'Organism and Populations' },
+                                { id: 'H1ILjQHLuhzqDGd5ExVr', name: 'Ecosystem' },
+                                { id: '9ha53VSAXmKiG9pttUyx', name: 'Biodiversity and Conservation' },
                               ]
                             };
                             
@@ -167,15 +238,16 @@ const Dashboard = () => {
               <p className="text-sm text-gray-600">No tasks scheduled for today.</p>
             )}
           </div>
+          </div>
         </div>
       </div>
-      {/* Logout Button */}
+      {/* Logout Button - positioned in the sidebar for both mobile and desktop */}
       <button
         onClick={handleLogout}
-        className="fixed bottom-8 left-8 flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-500 transition-colors"
+        className="fixed bottom-4 left-4 flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-500 transition-colors shadow-md z-50"
       >
         <LogOut className="h-5 w-5" />
-        Logout
+        <span>Logout</span>
       </button>
     </div>
   );

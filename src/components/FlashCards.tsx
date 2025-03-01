@@ -93,7 +93,7 @@ const FlashCards: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="flex space-x-2 mb-4 flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-4 overflow-x-auto pb-2">
             {availableSubjects.map((subject) => (
               <button
                 key={subject}
@@ -102,7 +102,7 @@ const FlashCards: React.FC = () => {
                   setCurrentCardIndex(0);
                   setIsFlipped(false);
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap ${
                   selectedSubject === subject
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -119,7 +119,7 @@ const FlashCards: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="relative h-64 w-full perspective-1000">
+              <div className="relative h-48 sm:h-64 w-full perspective-1000">
                 <motion.div
                   className="w-full h-full relative preserve-3d cursor-pointer"
                   animate={{ rotateY: isFlipped ? 180 : 0 }}
@@ -128,17 +128,18 @@ const FlashCards: React.FC = () => {
                 >
                   {/* Front of card */}
                   <div className="absolute w-full h-full backface-hidden">
-                    <div className="w-full h-full bg-white rounded-xl shadow-lg p-6 flex items-center justify-center text-center">
-                      <p className="text-lg font-medium text-gray-800">
+                    <div className="w-full h-full bg-white rounded-xl shadow-lg p-3 sm:p-6 flex flex-col items-center justify-center text-center">
+                      <p className="text-base sm:text-lg font-medium text-gray-800">
                         {filteredCards[currentCardIndex]?.question}
                       </p>
+                      <p className="text-xs text-gray-500 mt-3 italic">Tap to reveal answer</p>
                     </div>
                   </div>
 
                   {/* Back of card */}
                   <div className="absolute w-full h-full backface-hidden rotate-y-180">
-                    <div className="w-full h-full bg-blue-50 rounded-xl shadow-lg p-6 flex items-center justify-center text-center">
-                      <p className="text-lg font-medium text-gray-800">
+                    <div className="w-full h-full bg-blue-50 rounded-xl shadow-lg p-3 sm:p-6 flex items-center justify-center text-center">
+                      <p className="text-base sm:text-lg font-medium text-gray-800">
                         {filteredCards[currentCardIndex]?.answer}
                       </p>
                     </div>
@@ -149,13 +150,13 @@ const FlashCards: React.FC = () => {
               <div className="flex justify-center mt-4 space-x-4">
                 <button
                   onClick={handlePrevCard}
-                  className="px-4 py-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors text-sm sm:text-base"
                 >
                   Previous
                 </button>
                 <button
                   onClick={handleNextCard}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                 >
                   Next
                 </button>

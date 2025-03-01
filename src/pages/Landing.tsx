@@ -42,30 +42,30 @@ const Landing = () => {
       </nav>
 
       {/* Hero Section */}
-      <header className="px-4 py-16 sm:px-6 lg:px-8">
+      <header className="px-4 py-12 sm:py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="text-center">
-            <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900">
               Master Your Prep Journey
             </h1>
-            <p className="mt-6 text-lg leading-8 text-gray-600">
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-gray-600 px-2">
               Track your progress, analyze your performance, and achieve your goals with PrepTrack's intelligent learning platform.
             </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
+            <div className="mt-8 sm:mt-10 flex items-center justify-center gap-x-6">
               <button
                 onClick={handleGetStarted}
                 disabled={isSigningIn || loading}
-                className="rounded-md bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 flex items-center disabled:opacity-70 disabled:cursor-not-allowed"
+                className="rounded-md bg-indigo-600 px-4 sm:px-6 py-2 sm:py-3 text-base sm:text-lg font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 flex items-center disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isSigningIn || loading ? (
                   <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    <Loader2 className="mr-2 h-4 sm:h-5 w-4 sm:w-5 animate-spin" />
                     Signing in...
                   </>
                 ) : (
                   <>
                     Sign in with Google
-                    <ArrowRight className="ml-2 inline-block h-5 w-5" />
+                    <ArrowRight className="ml-2 inline-block h-4 sm:h-5 w-4 sm:w-5" />
                   </>
                 )}
               </button>
@@ -75,9 +75,9 @@ const Landing = () => {
       </header>
 
       {/* Features Section */}
-      <section className="py-16">
+      <section className="py-10 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 sm:gap-12 sm:grid-cols-2 lg:grid-cols-3">
             {/* Feature 1 */}
             <div className="flex flex-col items-center text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100">
@@ -121,23 +121,23 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-indigo-50 py-16">
+      <section className="bg-indigo-50 py-10 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
               Ready to Start Your Journey?
             </h2>
-            <p className="mt-4 text-lg text-gray-600">
+            <p className="mt-3 sm:mt-4 text-base sm:text-lg text-gray-600 px-2">
               Join thousands of students achieving their goals with PrepTrack.
             </p>
             <button
               onClick={handleGetStarted}
               disabled={isSigningIn || loading}
-              className="mt-8 inline-block rounded-md bg-indigo-600 px-8 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="mt-6 sm:mt-8 inline-block rounded-md bg-indigo-600 px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSigningIn || loading ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 inline animate-spin" />
+                  <Loader2 className="mr-2 h-4 sm:h-5 w-4 sm:w-5 inline animate-spin" />
                   Signing in...
                 </>
               ) : (
