@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
-import { Plus, Trash2, Video, FileQuestion } from 'lucide-react';
+import { Plus, Trash2, Video, FileQuestion, BookOpen } from 'lucide-react';
 
 interface VideoData {
   id?: string;
@@ -24,11 +24,20 @@ interface CustomQuestion {
   solution: string;
 }
 
+interface Flashcard {
+  id?: string;
+  subject: string;
+  question: string;
+  answer: string;
+  createdAt?: string;
+}
+
 const Admin = () => {
-  const [activeTab, setActiveTab] = useState<'videos' | 'questions'>('videos');
+  const [activeTab, setActiveTab] = useState<'videos' | 'questions' | 'flashcards'>('videos');
   const [error, setError] = useState<string | null>(null);
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [questions, setQuestions] = useState<CustomQuestion[]>([]);
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [newVideo, setNewVideo] = useState<VideoData>({
     title: '',
     youtubeId: '',
@@ -51,9 +60,16 @@ const Admin = () => {
     solution: ''
   });
 
+  const [newFlashcard, setNewFlashcard] = useState<Flashcard>({
+    subject: '',
+    question: '',
+    answer: ''
+  });
+
   useEffect(() => {
     fetchVideos();
     fetchQuestions();
+    fetchFlashcards();
   }, []);
 
   const fetchVideos = async () => {
@@ -81,6 +97,20 @@ const Admin = () => {
       setQuestions(questionList);
     } catch (error) {
       console.error('Error fetching questions:', error);
+    }
+  };
+
+  const fetchFlashcards = async () => {
+    try {
+      const flashcardsCollection = collection(db, 'flashcards');
+      const flashcardSnapshot = await getDocs(flashcardsCollection);
+      const flashcardList = flashcardSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Flashcard[];
+      setFlashcards(flashcardList);
+    } catch (error) {
+      console.error('Error fetching flashcards:', error);
     }
   };
 
@@ -192,6 +222,49 @@ const Admin = () => {
       } catch (error) {
         console.error('Error deleting question:', error);
       }
+    }
+  };
+
+  const handleDeleteFlashcard = async (flashcardId: string) => {
+    if (window.confirm('Are you sure you want to delete this flashcard?')) {
+      try {
+        await deleteDoc(doc(db, 'flashcards', flashcardId));
+        fetchFlashcards();
+      } catch (error) {
+        console.error('Error deleting flashcard:', error);
+      }
+    }
+  };
+
+  const handleFlashcardSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    
+    try {
+      if (!newFlashcard.subject || !newFlashcard.question || !newFlashcard.answer) {
+        throw new Error('Please fill in all fields');
+      }
+
+      const flashcardData = {
+        ...newFlashcard,
+        createdAt: new Date().toISOString()
+      };
+
+      const docRef = await addDoc(collection(db, 'flashcards'), flashcardData);
+      console.log('Flashcard added with ID:', docRef.id);
+
+      setNewFlashcard({
+        subject: '',
+        question: '',
+        answer: ''
+      });
+      fetchFlashcards();
+    } catch (err) {
+      console.error('Error adding flashcard:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -377,6 +450,17 @@ const Admin = () => {
         >
           <FileQuestion className="w-4 h-4 mr-2" />
           Questions
+        </button>
+        <button
+          className={`py-2 px-4 font-medium text-sm flex items-center ${
+            activeTab === 'flashcards'
+              ? 'border-b-2 border-indigo-500 text-indigo-600'
+              : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+          onClick={() => setActiveTab('flashcards')}
+        >
+          <BookOpen className="w-4 h-4 mr-2" />
+          Flashcards
         </button>
       </div>
       
@@ -676,6 +760,116 @@ const Admin = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
                           onClick={() => question.id && handleDeleteQuestion(question.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Flashcards Tab Content */}
+      {activeTab === 'flashcards' && (
+        <>
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-6">Add New Flashcard</h2>
+            <form onSubmit={handleFlashcardSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subject
+                  </label>
+                  <select
+                    value={newFlashcard.subject}
+                    onChange={(e) => setNewFlashcard(prev => ({ ...prev, subject: e.target.value }))}
+                    className="w-full p-2 border rounded-md"
+                    required
+                  >
+                    <option value="">Select Subject</option>
+                    <option value="Physics">Physics</option>
+                    <option value="Chemistry">Chemistry</option>
+                    <option value="Botany">Botany</option>
+                    <option value="Zoology">Zoology</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Question
+                </label>
+                <textarea
+                  value={newFlashcard.question}
+                  onChange={(e) => setNewFlashcard(prev => ({ ...prev, question: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Answer
+                </label>
+                <textarea
+                  value={newFlashcard.answer}
+                  onChange={(e) => setNewFlashcard(prev => ({ ...prev, answer: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                  rows={3}
+                  required
+                />
+              </div>
+
+              {error && (
+                <div className="text-red-500 text-sm">{error}</div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:bg-blue-300 flex items-center"
+              >
+                {loading ? 'Adding Flashcard...' : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Flashcard
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-lg shadow">
+            <h2 className="text-xl font-semibold p-6 border-b">Flashcard List</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Answer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {flashcards.map((flashcard) => (
+                    <tr key={flashcard.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{flashcard.subject}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        <div className="max-w-md truncate">{flashcard.question}</div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        <div className="max-w-md truncate">{flashcard.answer}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => flashcard.id && handleDeleteFlashcard(flashcard.id)}
                           className="text-red-600 hover:text-red-900"
                         >
                           <Trash2 className="w-5 h-5" />
