@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Video, FileQuestion } from 'lucide-react';
 
 interface VideoData {
   id?: string;
@@ -25,8 +25,10 @@ interface CustomQuestion {
 }
 
 const Admin = () => {
+  const [activeTab, setActiveTab] = useState<'videos' | 'questions'>('videos');
   const [error, setError] = useState<string | null>(null);
   const [videos, setVideos] = useState<VideoData[]>([]);
+  const [questions, setQuestions] = useState<CustomQuestion[]>([]);
   const [newVideo, setNewVideo] = useState<VideoData>({
     title: '',
     youtubeId: '',
@@ -38,6 +40,8 @@ const Admin = () => {
   const [loading, setLoading] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedChapter, setSelectedChapter] = useState('');
+  const [videoSubject, setVideoSubject] = useState('');
+  const [videoChapter, setVideoChapter] = useState('');
   const [newQuestion, setNewQuestion] = useState<CustomQuestion>({
     question: '',
     subject: '',
@@ -49,6 +53,7 @@ const Admin = () => {
 
   useEffect(() => {
     fetchVideos();
+    fetchQuestions();
   }, []);
 
   const fetchVideos = async () => {
@@ -65,11 +70,50 @@ const Admin = () => {
     }
   };
 
+  const fetchQuestions = async () => {
+    try {
+      const questionsCollection = collection(db, 'customQuestions');
+      const questionSnapshot = await getDocs(questionsCollection);
+      const questionList = questionSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as CustomQuestion[];
+      setQuestions(questionList);
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    if (name === 'subject') {
+      setVideoSubject(value);
+      setVideoChapter('');
+      setNewVideo(prev => ({
+        ...prev,
+        subject: value,
+        chapter: ''
+      }));
+    } else {
+      setNewVideo(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+  
+  const handleVideoChapterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { value } = e.target;
+    setVideoChapter(value);
+    
+    // Find the chapter name based on the selected ID
+    const subjectName = newVideo.subject;
+    const chapterName = chapters[subjectName]?.find(c => c.id === value)?.name || '';
+    
     setNewVideo(prev => ({
       ...prev,
-      [name]: value
+      chapter: chapterName
     }));
   };
 
@@ -117,6 +161,8 @@ const Admin = () => {
         subject: '',
         thumbnail: ''
       });
+      setVideoSubject('');
+      setVideoChapter('');
       await fetchVideos();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error adding video';
@@ -127,13 +173,24 @@ const Admin = () => {
     }
   };
 
-  const handleDelete = async (videoId: string) => {
+  const handleDeleteVideo = async (videoId: string) => {
     if (window.confirm('Are you sure you want to delete this video?')) {
       try {
         await deleteDoc(doc(db, 'videos', videoId));
         fetchVideos();
       } catch (error) {
         console.error('Error deleting video:', error);
+      }
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId: string) => {
+    if (window.confirm('Are you sure you want to delete this question?')) {
+      try {
+        await deleteDoc(doc(db, 'customQuestions', questionId));
+        fetchQuestions();
+      } catch (error) {
+        console.error('Error deleting question:', error);
       }
     }
   };
@@ -167,6 +224,7 @@ const Admin = () => {
       });
       setSelectedSubject('');
       setSelectedChapter('');
+      fetchQuestions();
     } catch (err) {
       console.error('Error adding question:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -296,14 +354,44 @@ const Admin = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
       
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-        {error && (
-          <div className="mb-4 p-4 text-red-700 bg-red-100 rounded-lg">
-            {error}
-          </div>
-        )}
-        <h2 className="text-xl font-semibold mb-4">Add New Video</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Tab Navigation */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          className={`py-2 px-4 font-medium text-sm flex items-center ${
+            activeTab === 'videos'
+              ? 'border-b-2 border-indigo-500 text-indigo-600'
+              : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+          onClick={() => setActiveTab('videos')}
+        >
+          <Video className="w-4 h-4 mr-2" />
+          Videos
+        </button>
+        <button
+          className={`py-2 px-4 font-medium text-sm flex items-center ${
+            activeTab === 'questions'
+              ? 'border-b-2 border-indigo-500 text-indigo-600'
+              : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+          onClick={() => setActiveTab('questions')}
+        >
+          <FileQuestion className="w-4 h-4 mr-2" />
+          Questions
+        </button>
+      </div>
+      
+      {error && (
+        <div className="mb-4 p-4 text-red-700 bg-red-100 rounded-lg">
+          {error}
+        </div>
+      )}
+      
+      {/* Videos Tab Content */}
+      {activeTab === 'videos' && (
+        <>
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-4">Add New Video</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Title</label>
@@ -356,14 +444,20 @@ const Admin = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Chapter</label>
-              <input
-                type="text"
-                name="chapter"
-                value={newVideo.chapter}
-                onChange={handleInputChange}
+              <select
+                value={videoChapter}
+                onChange={handleVideoChapterChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
-              />
+                disabled={!newVideo.subject}
+              >
+                <option value="">Select Chapter</option>
+                {newVideo.subject && chapters[newVideo.subject]?.map(chapter => (
+                  <option key={chapter.id} value={chapter.id}>
+                    {chapter.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <button
@@ -378,12 +472,61 @@ const Admin = () => {
               </>
             )}
           </button>
-        </form>
-      </div>
+            </form>
+          </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-2xl font-semibold mb-6">Add Custom Question</h2>
-        <form onSubmit={handleQuestionSubmit} className="space-y-4">
+          <div className="bg-white rounded-lg shadow">
+            <h2 className="text-xl font-semibold p-6 border-b">Video List</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chapter</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {videos.map((video) => (
+                    <tr key={video.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <img 
+                            src={video.thumbnail} 
+                            alt={video.title}
+                            className="h-10 w-16 object-cover rounded mr-3"
+                          />
+                          <div className="text-sm font-medium text-gray-900">{video.title}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{video.subject}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{video.chapter}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{video.duration}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => video.id && handleDeleteVideo(video.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+      
+      {/* Questions Tab Content */}
+      {activeTab === 'questions' && (
+        <>
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-6">Add Custom Question</h2>
+            <form onSubmit={handleQuestionSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Subject
@@ -500,52 +643,52 @@ const Admin = () => {
           >
             {loading ? 'Adding Question...' : 'Add Question'}
           </button>
-        </form>
-      </div>
+            </form>
+          </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <h2 className="text-xl font-semibold p-6 border-b">Video List</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chapter</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {videos.map((video) => (
-                <tr key={video.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <img 
-                        src={video.thumbnail} 
-                        alt={video.title}
-                        className="h-10 w-16 object-cover rounded mr-3"
-                      />
-                      <div className="text-sm font-medium text-gray-900">{video.title}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{video.subject}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{video.chapter}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{video.duration}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => video.id && handleDelete(video.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          <div className="bg-white rounded-lg shadow">
+            <h2 className="text-xl font-semibold p-6 border-b">Question List</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chapter</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {questions.map((question) => (
+                    <tr key={question.id}>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        <div className="max-w-md truncate">{question.question}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {subjects.find(s => s.id === question.subject)?.name || question.subject}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {(() => {
+                          const subjectName = subjects.find(s => s.id === question.subject)?.name || '';
+                          return chapters[subjectName]?.find(c => c.id === question.chapter)?.name || question.chapter;
+                        })()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => question.id && handleDeleteQuestion(question.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
