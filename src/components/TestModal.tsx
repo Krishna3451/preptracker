@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, ChevronRight, ChevronLeft, Clock } from 'lucide-react';
 import TestInterface from './TestInterface';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Subject {
   id: string;
@@ -20,6 +21,7 @@ interface TestModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (testConfig: TestConfig) => void;
+  testType: 'custom' | 'pyq';
 }
 
 interface TestConfig {
@@ -30,7 +32,8 @@ interface TestConfig {
   selectedChapters: string[];
 }
 
-const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
+const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit, testType }) => {
+  const { incrementTestCount } = useAuth();
   const [step, setStep] = useState(1);
   const [testName, setTestName] = useState('');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
@@ -291,7 +294,7 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
     }
   };
 
-  const handleStartTest = () => {
+  const handleStartTest = async () => {
     // Create a clean question count object with only selected subjects
     const filteredQuestionCount = selectedSubjects.reduce((acc, subject) => {
       acc[subject.toLowerCase()] = questionCount[subject.toLowerCase()] || 0;
@@ -306,6 +309,15 @@ const TestModal: React.FC<TestModalProps> = ({ isOpen, onClose, onSubmit }) => {
       selectedChapters
     };
     console.log('Starting test with config:', config);
+    
+    // Increment test count if this is a custom test
+    if (testType === 'custom') {
+      try {
+        await incrementTestCount();
+      } catch (error) {
+        console.error('Error incrementing test count:', error);
+      }
+    }
     
     // Start countdown timer
     setCountdown(3);

@@ -18,11 +18,15 @@ interface AuthContextType {
   isAdmin: boolean;
   isSuperAdmin: boolean;
   adminUsers: AdminUser[];
+  testCount: number;
+  remainingTests: number;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   addAdminUser: (email: string) => Promise<void>;
   removeAdminUser: (uid: string) => Promise<void>;
   checkAdminStatus: (uid: string) => Promise<boolean>;
+  checkAndUpdateTestCount: () => Promise<boolean>;
+  incrementTestCount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -41,6 +45,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [testCount, setTestCount] = useState(0);
+  const MAX_FREE_TESTS = 3;
+  const remainingTests = Math.max(0, MAX_FREE_TESTS - testCount);
 
   // Fetch all admin users from Firestore
   const fetchAdminUsers = async () => {
@@ -149,6 +156,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     return unsubscribe;
   }, []);
+  
+  // Load test count when user changes
+  useEffect(() => {
+    if (user && !isAdmin) {
+      const loadTestCount = async () => {
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setTestCount(userData.testCount || 0);
+          } else {
+            setTestCount(0);
+          }
+        } catch (error) {
+          console.error('Error loading test count:', error);
+          setTestCount(0);
+        }
+      };
+      
+      loadTestCount();
+    } else {
+      setTestCount(0);
+    }
+  }, [user, isAdmin]);
 
   const signInWithGoogle = async () => {
     // Ensure persistence is set to LOCAL before sign-in
@@ -265,6 +298,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Check if user can create more tests and get current test count
+  const checkAndUpdateTestCount = async (): Promise<boolean> => {
+    if (!user) return false;
+    
+    // Admin users can always create tests
+    if (isAdmin) return true;
+    
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const currentTestCount = userData.testCount || 0;
+        setTestCount(currentTestCount);
+        
+        // Check if user has reached the limit
+        return currentTestCount < MAX_FREE_TESTS;
+      }
+      
+      return true; // New users can create tests
+    } catch (error) {
+      console.error('Error checking test count:', error);
+      return false;
+    }
+  };
+
+  // Increment the test count for the user
+  const incrementTestCount = async (): Promise<void> => {
+    if (!user) return;
+    
+    // Admin users don't increment their count
+    if (isAdmin) return;
+    
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const currentTestCount = userData.testCount || 0;
+        const newTestCount = currentTestCount + 1;
+        
+        await setDoc(userRef, { testCount: newTestCount }, { merge: true });
+        setTestCount(newTestCount);
+      } else {
+        // If user document doesn't exist (shouldn't happen), create it
+        await setDoc(userRef, { testCount: 1 }, { merge: true });
+        setTestCount(1);
+      }
+    } catch (error) {
+      console.error('Error incrementing test count:', error);
+    }
+  };
+
+
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -272,11 +362,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAdmin,
       isSuperAdmin,
       adminUsers,
+      testCount,
+      remainingTests,
       signInWithGoogle,
       logout,
       addAdminUser,
       removeAdminUser,
-      checkAdminStatus
+      checkAdminStatus,
+      checkAndUpdateTestCount,
+      incrementTestCount
     }}>
       {children}
     </AuthContext.Provider>
