@@ -186,47 +186,52 @@ const Learn = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">Learning Center</h1>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search videos..."
-            className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-[300px] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+    <div className="flex flex-col h-[calc(100vh-64px)]">
+      {/* Fixed header section */}
+      <div className="flex flex-col space-y-4 bg-gray-50 z-10 px-2 md:px-0">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 pt-2">
+          <h1 className="text-2xl font-bold text-gray-800 pl-10 md:pl-0">Learning Center</h1>
+          <div className="relative w-full md:w-auto">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search videos..."
+              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-full md:w-[300px] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex overflow-x-auto pb-2 border-b sticky top-0 bg-gray-50 pl-10 md:pl-0">
+          {Object.keys(subjectData).length > 0 ? (
+            Object.keys(subjectData).map((subject) => (
+              <button
+                key={subject}
+                onClick={() => {
+                  setSelectedSubject(subject);
+                  setSelectedChapter(null);
+                }}
+                className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${
+                  selectedSubject === subject
+                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {subject}
+              </button>
+            ))
+          ) : (
+            <div className="text-gray-500">Loading subjects...</div>
+          )}
         </div>
       </div>
 
-      <div className="flex space-x-4 border-b">
-        {Object.keys(subjectData).length > 0 ? (
-          Object.keys(subjectData).map((subject) => (
-            <button
-              key={subject}
-              onClick={() => {
-                setSelectedSubject(subject);
-                setSelectedChapter(null);
-              }}
-              className={`px-4 py-2 font-medium text-sm ${
-                selectedSubject === subject
-                  ? 'text-indigo-600 border-b-2 border-indigo-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {subject}
-            </button>
-          ))
-        ) : (
-          <div className="text-gray-500">Loading subjects...</div>
-        )}
-      </div>
-
-      <div className="flex gap-6">
-        <div className="w-64 space-y-2">
-          <h2 className="font-semibold text-gray-700 mb-4">Chapters</h2>
+      {/* Scrollable content area */}
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6 flex-1 overflow-hidden mt-4 px-2 md:px-0">
+        {/* Sidebar - fixed on desktop, dropdown on mobile */}
+        <div className="md:w-64 md:space-y-2 md:flex-shrink-0 pl-10 md:pl-0">
+          <h2 className="font-semibold text-gray-700 mb-2 md:mb-4">Chapters</h2>
           <div className="space-y-1">
             {subjectData[selectedSubject] && (
               <select
@@ -245,8 +250,9 @@ const Learn = () => {
           </div>
         </div>
 
-        <div className="flex-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Scrollable video grid */}
+        <div className="flex-1 overflow-y-auto pr-2 md:pr-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {loading ? (
               <div className="col-span-3 text-center py-8 text-gray-500">
                 Loading videos...

@@ -6,10 +6,10 @@ import Modal from '../components/Modal';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, BookOpen, BarChart2, X } from 'lucide-react';
+import { BookOpen, BarChart2, X } from 'lucide-react';
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,16 +28,7 @@ const Dashboard = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = async () => {
-    setShowLogoutModal(true);
-  };
-
-  const confirmLogout = async () => {
-    await logout();
-    navigate('/');
-  };
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showCalendar, setShowCalendar] = useState<boolean>(window.innerWidth >= 768);
@@ -51,16 +42,10 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <Modal
-        isOpen={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={confirmLogout}
-        title="Confirm Logout"
-        message="Are you sure you want to log out? You will need to sign in again to access your dashboard."
-      />
+
       <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
         <div className="space-y-6 flex-1 w-full">
-          <h1 className="text-2xl font-bold text-gray-800">Hello Dr {user?.displayName?.split(' ')[0]}!</h1>
+          <h1 className="text-2xl font-bold text-gray-800 pl-10 md:pl-0">Hello Dr {user?.displayName?.split(' ')[0]}!</h1>
           <ExamCountdown />
           <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm">
             <h2 className="text-sm font-semibold text-gray-800 mb-4">Study Flashcards</h2>
@@ -241,14 +226,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-      {/* Logout Button - positioned in the sidebar for both mobile and desktop */}
-      <button
-        onClick={handleLogout}
-        className="fixed bottom-4 left-4 flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-500 transition-colors shadow-md z-50"
-      >
-        <LogOut className="h-5 w-5" />
-        <span>Logout</span>
-      </button>
+
     </div>
   );
 };

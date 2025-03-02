@@ -114,6 +114,7 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
   const [showResults, setShowResults] = useState(false);
   const [testResults, setTestResults] = useState<TestResults | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showMobileOverview, setShowMobileOverview] = useState(false);
 
   const subjectMapping = {
     'viQ2R4q7DVRyhecVTrSg': 'physics',
@@ -649,7 +650,10 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
             {/* Top Bar */}
             <div className="flex justify-between items-center px-4 py-3 bg-[#1a1b2e] border-b border-gray-800">
               <div className="flex items-center gap-4">
-                <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg">
+                <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg md:block hidden">
+                  <X className="w-5 h-5" />
+                </button>
+                <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg md:hidden">
                   <X className="w-5 h-5" />
                 </button>
                 <div className="flex items-center gap-2">
@@ -659,12 +663,22 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
                   </span>
                 </div>
               </div>
-              <button 
-                onClick={() => setShowConfirmDialog(true)}
-                className="px-4 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-medium"
-              >
-                Submit Test
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Mobile Overview Toggle Button */}
+                <button 
+                  onClick={() => setShowMobileOverview(!showMobileOverview)}
+                  className="md:hidden p-2 hover:bg-gray-800 rounded-lg flex items-center gap-1"
+                >
+                  <Flag className="w-5 h-5" />
+                  <span className="text-xs">Overview</span>
+                </button>
+                <button 
+                  onClick={() => setShowConfirmDialog(true)}
+                  className="px-4 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-medium"
+                >
+                  Submit Test
+                </button>
+              </div>
 
               {/* Custom Confirmation Dialog */}
               {showConfirmDialog && (
@@ -714,7 +728,7 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
             </div>
 
             {/* Subject Tabs */}
-            <div className="flex gap-4 px-4 py-2 bg-[#1a1b2e] border-b border-gray-800">
+            <div className="flex gap-4 px-4 py-2 bg-[#1a1b2e] border-b border-gray-800 overflow-x-auto whitespace-nowrap">
               {filteredSubjects.map(subject => {
                 const questionsCount = questions.filter(q => {
                   const subjectId = q.subjects[0];
@@ -758,6 +772,69 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
                         </span>
                       )}
                     </div>
+                    
+                    {/* Mobile Overview Modal */}
+                    {showMobileOverview && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 md:hidden">
+                        <div className="bg-[#1a1b2e] p-6 rounded-lg max-w-md w-full mx-4 border border-gray-700 max-h-[80vh] overflow-y-auto">
+                          <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-semibold">Test Overview</h3>
+                            <button 
+                              onClick={() => setShowMobileOverview(false)}
+                              className="p-2 hover:bg-gray-800 rounded-lg"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+                          
+                          <div className="mb-4">
+                            <div className="grid grid-cols-2 gap-2 text-xs mb-4">
+                              <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                <span>{filteredQuestions.filter(q => selectedAnswers[q._id]).length} Answered</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                                <span>{markedForReview.size} Marked</span>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-6 gap-1">
+                              {filteredQuestions.map((_, index) => {
+                                const status = getQuestionStatus(index);
+                                return (
+                                  <button
+                                    key={index}
+                                    onClick={() => {
+                                      setCurrentQuestionIndex(index);
+                                      setShowMobileOverview(false);
+                                    }}
+                                    className={`w-full aspect-square rounded flex items-center justify-center text-xs font-medium ${
+                                      index === currentQuestionIndex
+                                        ? 'bg-indigo-500 text-white'
+                                        : status === 'answered'
+                                        ? 'bg-green-500 text-white'
+                                        : status === 'review'
+                                        ? 'bg-purple-500 text-white'
+                                        : 'bg-gray-800 text-gray-400'
+                                    }`}
+                                  >
+                                    {index + 1}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          
+                          <button
+                            onClick={() => setShowMobileOverview(false)}
+                            className="w-full px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white"
+                          >
+                            Continue Test
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Question Content */}
                     <div className="bg-[#232438] p-6 rounded-xl mb-6">
@@ -825,8 +902,8 @@ const TestInterface: React.FC<TestInterfaceProps> = ({
                 )}
               </div>
 
-              {/* Right Sidebar - Question Grid */}
-              <div className="w-64 bg-[#232438] p-4 overflow-y-auto border-l border-gray-800">
+              {/* Right Sidebar - Question Grid (Hidden on Mobile) */}
+              <div className="w-64 bg-[#232438] p-4 overflow-y-auto border-l border-gray-800 hidden md:block">
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="text-sm font-medium">Overview</h3>
