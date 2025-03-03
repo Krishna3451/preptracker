@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
-import { Plus, Trash2, Video, FileQuestion, BookOpen, Shield, UserPlus, UserX } from 'lucide-react';
+import { Plus, Trash2, Video, FileQuestion, BookOpen, Shield, UserPlus, UserX, Image, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface VideoData {
@@ -18,11 +18,14 @@ interface VideoData {
 interface CustomQuestion {
   id?: string;
   question: string;
+  questionImage?: string;
   subject: string;
   chapter: string;
   options: string[];
+  optionImages?: string[];
   correctOption: number;
   solution: string;
+  solutionImage?: string;
 }
 
 interface Flashcard {
@@ -32,6 +35,83 @@ interface Flashcard {
   answer: string;
   createdAt?: string;
 }
+
+// Custom dropzone component to avoid React Hook errors
+const ImageDropzone = ({ onDrop, preview, onRemove, label }: { 
+  onDrop: (files: File[]) => void; 
+  preview?: string;
+  onRemove?: () => void;
+  label: string;
+}) => {
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      onDrop(files);
+    }
+  }, [onDrop]);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      onDrop(files);
+    }
+  }, [onDrop]);
+
+  return (
+    <div>
+      {preview ? (
+        <div className="relative">
+          <img 
+            src={preview} 
+            alt="Image preview" 
+            className="max-h-48 max-w-full object-contain"
+          />
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      ) : (
+        <div 
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer"
+          onClick={() => document.getElementById(`file-input-${label}`)?.click()}
+        >
+          <input 
+            id={`file-input-${label}`}
+            type="file" 
+            accept="image/*" 
+            onChange={handleFileChange} 
+            className="hidden"
+          />
+          <div className="flex flex-col items-center">
+            <Image className="h-10 w-10 text-gray-400 mb-2" />
+            <p className="text-sm text-gray-500">
+              {label}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Drag and drop or click to select
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Admin = () => {
   const { user, isAdmin, isSuperAdmin, adminUsers, addAdminUser, removeAdminUser } = useAuth();
@@ -58,6 +138,7 @@ const Admin = () => {
     subject: '',
     chapter: '',
     options: ['', '', '', ''],
+    optionImages: ['', '', '', ''],
     correctOption: 0,
     solution: ''
   });
@@ -73,6 +154,15 @@ const Admin = () => {
   const [adminError, setAdminError] = useState<string | null>(null);
   const [adminSuccess, setAdminSuccess] = useState<string | null>(null);
   const [isAddingAdmin, setIsAddingAdmin] = useState(false);
+
+  // Image upload states
+  const [questionImage, setQuestionImage] = useState<File | null>(null);
+  const [questionImagePreview, setQuestionImagePreview] = useState<string>('');
+  const [optionImages, setOptionImages] = useState<(File | null)[]>([null, null, null, null]);
+  const [optionImagePreviews, setOptionImagePreviews] = useState<string[]>(['', '', '', '']);
+  const [solutionImage, setSolutionImage] = useState<File | null>(null);
+  const [solutionImagePreview, setSolutionImagePreview] = useState<string>('');
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   useEffect(() => {
     fetchVideos();
@@ -165,7 +255,6 @@ const Admin = () => {
     const { name, value } = e.target;
     
     if (name === 'subject') {
-      setVideoSubject(value);
       setVideoChapter('');
       setNewVideo(prev => ({
         ...prev,
@@ -195,7 +284,7 @@ const Admin = () => {
   };
 
   const extractYoutubeId = (url: string) => {
-    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const regex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
     const match = url.match(regex);
     return match ? match[1] : url;
   };
@@ -238,7 +327,6 @@ const Admin = () => {
         subject: '',
         thumbnail: ''
       });
-      setVideoSubject('');
       setVideoChapter('');
       await fetchVideos();
     } catch (err) {
@@ -315,6 +403,145 @@ const Admin = () => {
     }
   };
 
+  // Question image handler
+  const handleQuestionImageDrop = useCallback((files: File[]) => {
+    if (files.length > 0) {
+      const file = files[0];
+      setQuestionImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        setQuestionImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  // Option image handler
+  const handleOptionImageDrop = useCallback((files: File[], index: number) => {
+    if (files.length > 0) {
+      const file = files[0];
+      
+      setOptionImages(prev => {
+        const newImages = [...prev];
+        newImages[index] = file;
+        return newImages;
+      });
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        setOptionImagePreviews(prev => {
+          const newPreviews = [...prev];
+          newPreviews[index] = reader.result as string;
+          return newPreviews;
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  // Remove question image
+  const removeQuestionImage = () => {
+    setQuestionImage(null);
+    setQuestionImagePreview('');
+  };
+
+  // Remove option image
+  const removeOptionImage = (index: number) => {
+    setOptionImages(prev => {
+      const newImages = [...prev];
+      newImages[index] = null;
+      return newImages;
+    });
+    
+    setOptionImagePreviews(prev => {
+      const newPreviews = [...prev];
+      newPreviews[index] = '';
+      return newPreviews;
+    });
+  };
+
+  // Solution image handler
+  const handleSolutionImageDrop = useCallback((files: File[]) => {
+    if (files && files.length > 0) {
+      const file = files[0];
+      setSolutionImage(file);
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSolutionImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  // Remove solution image
+  const removeSolutionImage = () => {
+    setSolutionImage(null);
+    setSolutionImagePreview('');
+  };
+
+  // Upload images and get URLs
+  const uploadImages = async () => {
+    setUploadingImages(true);
+    try {
+      let questionImageUrl = '';
+      const optionImageUrls: string[] = ['', '', '', ''];
+      let solutionImageUrl = '';
+      
+      // Upload question image if exists
+      if (questionImage) {
+        try {
+          const questionImageRef = ref(storage, `question-images/${Date.now()}-${questionImage.name}`);
+          await uploadBytes(questionImageRef, questionImage);
+          questionImageUrl = await getDownloadURL(questionImageRef);
+        } catch (error) {
+          console.error('Error uploading question image:', error);
+          throw new Error('Failed to upload question image. Please check your Firebase Storage CORS configuration.');
+        }
+      }
+      
+      // Upload option images if they exist
+      for (let i = 0; i < optionImages.length; i++) {
+        if (optionImages[i]) {
+          try {
+            const optionImageRef = ref(storage, `option-images/${Date.now()}-${optionImages[i]!.name}`);
+            await uploadBytes(optionImageRef, optionImages[i]!);
+            optionImageUrls[i] = await getDownloadURL(optionImageRef);
+          } catch (error) {
+            console.error(`Error uploading option image ${i + 1}:`, error);
+            throw new Error(`Failed to upload option image ${i + 1}. Please check your Firebase Storage CORS configuration.`);
+          }
+        }
+      }
+      
+      // Upload solution image if exists
+      if (solutionImage) {
+        try {
+          const solutionImageRef = ref(storage, `solution-images/${Date.now()}-${solutionImage.name}`);
+          await uploadBytes(solutionImageRef, solutionImage);
+          solutionImageUrl = await getDownloadURL(solutionImageRef);
+        } catch (error) {
+          console.error('Error uploading solution image:', error);
+          throw new Error('Failed to upload solution image. Please check your Firebase Storage CORS configuration.');
+        }
+      }
+      
+      return {
+        questionImageUrl,
+        optionImageUrls,
+        solutionImageUrl
+      };
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      throw error;
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
   const handleQuestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -326,24 +553,57 @@ const Admin = () => {
         throw new Error('Please fill in all fields');
       }
 
+      // Upload images if any
+      let questionImageUrl = '';
+      let optionImageUrls = ['', '', '', ''];
+      let solutionImageUrl = '';
+      
+      if (questionImage || optionImages.some(img => img !== null) || solutionImage) {
+        try {
+          const uploadResult = await uploadImages();
+          questionImageUrl = uploadResult.questionImageUrl;
+          optionImageUrls = uploadResult.optionImageUrls;
+          solutionImageUrl = uploadResult.solutionImageUrl;
+        } catch (error) {
+          if (error instanceof Error) {
+            setError(error.message);
+          } else {
+            setError('Failed to upload images. Please try again later.');
+          }
+          setLoading(false);
+          return;
+        }
+      }
+
       const questionData = {
         ...newQuestion,
+        questionImage: questionImageUrl,
+        optionImages: optionImageUrls,
+        solutionImage: solutionImageUrl,
         createdAt: new Date().toISOString()
       };
 
       const docRef = await addDoc(collection(db, 'customQuestions'), questionData);
       console.log('Question added with ID:', docRef.id);
 
+      // Reset form
       setNewQuestion({
         question: '',
         subject: '',
         chapter: '',
         options: ['', '', '', ''],
+        optionImages: ['', '', '', ''],
         correctOption: 0,
         solution: ''
       });
       setSelectedSubject('');
       setSelectedChapter('');
+      setQuestionImage(null);
+      setQuestionImagePreview('');
+      setOptionImages([null, null, null, null]);
+      setOptionImagePreviews(['', '', '', '']);
+      setSolutionImage(null);
+      setSolutionImagePreview('');
       fetchQuestions();
     } catch (err) {
       console.error('Error adding question:', err);
@@ -830,27 +1090,52 @@ const Admin = () => {
             />
           </div>
 
+          {/* Question Image Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Question Image (Optional)
+            </label>
+            <ImageDropzone 
+              onDrop={handleQuestionImageDrop}
+              preview={questionImagePreview}
+              onRemove={removeQuestionImage}
+              label="Add image to question"
+            />
+          </div>
+
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
               Options
             </label>
             {newQuestion.options.map((option, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="correctOption"
-                  checked={newQuestion.correctOption === index}
-                  onChange={() => setNewQuestion(prev => ({ ...prev, correctOption: index }))}
-                  className="mr-2"
-                />
-                <input
-                  type="text"
-                  value={option}
-                  onChange={(e) => handleOptionChange(index, e.target.value)}
-                  placeholder={`Option ${index + 1}`}
-                  className="flex-1 p-2 border rounded-md"
-                  required
-                />
+              <div key={index} className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="correctOption"
+                    checked={newQuestion.correctOption === index}
+                    onChange={() => setNewQuestion(prev => ({ ...prev, correctOption: index }))}
+                    className="mr-2"
+                  />
+                  <input
+                    type="text"
+                    value={option}
+                    onChange={(e) => handleOptionChange(index, e.target.value)}
+                    placeholder={`Option ${index + 1}`}
+                    className="flex-1 p-2 border rounded-md"
+                    required
+                  />
+                </div>
+                
+                {/* Option Image Upload */}
+                <div className="ml-6">
+                  <ImageDropzone 
+                    onDrop={(files) => handleOptionImageDrop(files, index)}
+                    preview={optionImagePreviews[index]}
+                    onRemove={() => removeOptionImage(index)}
+                    label={`Add image for option ${index + 1}`}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -869,16 +1154,42 @@ const Admin = () => {
             />
           </div>
 
+          {/* Solution Image Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Solution Image (Optional)
+            </label>
+            <ImageDropzone
+              onDrop={handleSolutionImageDrop}
+              preview={solutionImagePreview}
+              onRemove={removeSolutionImage}
+              label="Add image to solution"
+            />
+          </div>
+
           {error && (
             <div className="text-red-500 text-sm">{error}</div>
           )}
 
           <button
             type="submit"
-            disabled={loading}
-            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:bg-blue-300"
+            disabled={loading || uploadingImages}
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:bg-blue-300 flex items-center"
           >
-            {loading ? 'Adding Question...' : 'Add Question'}
+            {loading || uploadingImages ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {uploadingImages ? 'Uploading Images...' : 'Adding Question...'}
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Question
+              </>
+            )}
           </button>
             </form>
           </div>
