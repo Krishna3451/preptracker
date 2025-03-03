@@ -8,6 +8,7 @@ import Rank from './pages/Rank';
 import Reports from './pages/Reports';
 import Landing from './pages/Landing';
 import Admin from './pages/Admin';
+import Progress from './pages/Progress';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
@@ -43,6 +44,7 @@ function App() {
             <Route path="/test" element={<ProtectedRoute><TestYourself /></ProtectedRoute>} />
             <Route path="/rank" element={<ProtectedRoute><Rank /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
           </Routes>
         </AppLayout>

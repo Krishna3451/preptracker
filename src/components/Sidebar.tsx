@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, PenTool, Trophy, BarChart2, GraduationCap, Menu, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, BookOpen, PenTool, Trophy, BarChart2, GraduationCap, Menu, X, LogOut, LineChart } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Modal from './Modal';
@@ -30,6 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileMenuOpen
     { path: '/test', icon: PenTool, label: 'Test Yourself' },
     { path: '/rank', icon: Trophy, label: 'Rank' },
     { path: '/reports', icon: BarChart2, label: 'Reports' },
+    { path: '/progress', icon: LineChart, label: 'Track Progress' },
   ];
 
   
